@@ -117,7 +117,7 @@ OpenCode Runtime (TypeScript 进程)
 ### 2.2 模块拓扑图
 
 ```
-                    createFramework(config)
+                    createVitaminCoding(config)
                            │
           ┌────────────────┼────────────────┐
           ▼                ▼                ▼
@@ -918,7 +918,7 @@ type FrameworkConfig = z.infer<typeof FrameworkConfigSchema>
 
 ```
 Priority (高 → 低):
-  1. 运行时参数 (createFramework({ ... }))
+  1. 运行时参数 (createVitaminCoding({ ... }))
   2. 项目配置  ({cwd}/.vitamin-coding/config.jsonc)
   3. 用户配置  (~/.config/vitamin-coding/config.jsonc)
   4. 框架默认值
@@ -1208,9 +1208,9 @@ OpenCode Runtime → fork Plugin Process → Plugin(ctx)
 **框架初始化（独立运行）：**
 
 ```typescript
-import { createFramework } from "@vitamin-coding/core"
+import { createVitaminCoding } from "@vitamin-coding/core"
 
-const framework = await createFramework({
+const framework = await createVitaminCoding({
   directory: process.cwd(),
   config: "./vitamin-coding.jsonc",   // 或直接传对象
   providers: [
@@ -1223,7 +1223,7 @@ const framework = await createFramework({
 ### 12.2 框架初始化序列
 
 ```
-createFramework(options)
+createVitaminCoding(options)
   │
   ├─① ConfigLoader.load()
   │   ├─ 读取用户配置 (~/.config/vitamin-coding/config.jsonc)
@@ -1275,7 +1275,7 @@ createFramework(options)
 ```
 模式 A: 独立运行 (Standalone)
   ┌─────────────┐
-  │ Node.js App │ → createFramework() → framework.run("Build a feature")
+  │ Node.js App │ → createVitaminCoding() → framework.run("Build a feature")
   └─────────────┘
 
 模式 B: OpenCode Plugin Bridge (兼容模式)
@@ -1290,7 +1290,7 @@ createFramework(options)
 import { createOpenCodeBridge } from "@vitamin-coding/opencode-bridge"
 
 const plugin: Plugin = async (ctx) => {
-  const framework = await createFramework({ directory: ctx.directory })
+  const framework = await createVitaminCoding({ directory: ctx.directory })
   return createOpenCodeBridge(framework, ctx)
   // 自动映射 framework hooks → OpenCode plugin hooks
 }
@@ -1306,7 +1306,7 @@ export default plugin
 ```typescript
 // ──── 创建框架实例 ────
 
-const framework = await createFramework({
+const framework = await createVitaminCoding({
   directory: "./my-project",
   providers: [anthropicAdapter(), openaiAdapter()],
 })
@@ -1460,7 +1460,7 @@ const omoPlugin: FrameworkPlugin = {
   },
 }
 
-const framework = await createFramework({
+const framework = await createVitaminCoding({
   plugins: [omoPlugin],
 })
 ```
@@ -1521,7 +1521,7 @@ const framework = await createFramework({
 ```
 @vitamin-coding/core
 ├── src/
-│   ├── index.ts              # createFramework()
+│   ├── index.ts              # createVitaminCoding()
 │   ├── types.ts              # 核心类型
 │   ├── config/
 │   │   ├── loader.ts         # JSONC 加载 + Zod 校验
@@ -1547,7 +1547,7 @@ const framework = await createFramework({
 ```
 
 **交付物**:
-- `createFramework()` 可运行
+- `createVitaminCoding()` 可运行
 - 手动注册 Agent/Tool/Hook
 - 单个 LLM Adapter 可驱动 Chat Loop
 - 基本 Hook 生命周期
@@ -1964,7 +1964,7 @@ function createCloudAgentFactory(store: PromptStore): AgentFactory {
 
 ```
 优先级 (高 → 低):
-  1. 运行时参数         createFramework({ ... })
+  1. 运行时参数         createVitaminCoding({ ... })
   2. 租户级数据库配置    ConfigStore.get(tenantID)
   3. 全局数据库配置      ConfigStore.get(null)
   4. 项目 JSONC 文件    .vitamin-coding/config.jsonc    (仅 CLI 模式)
@@ -2007,7 +2007,7 @@ function createCloudAgentFactory(store: PromptStore): AgentFactory {
 ### 16.9 框架初始化（云端模式）
 
 ```typescript
-import { createFramework } from "@vitamin-coding/core"
+import { createVitaminCoding } from "@vitamin-coding/core"
 import { createPostgresStores } from "@vitamin-coding/store-postgres"
 import { createRedisTaskQueue } from "@vitamin-coding/store-redis"
 
@@ -2019,7 +2019,7 @@ const taskQueue = createRedisTaskQueue({
   url: process.env.REDIS_URL,
 })
 
-const framework = await createFramework({
+const framework = await createVitaminCoding({
   // 存储层替换
   stores: {
     sessions: stores.sessions,     // SessionStore → PostgreSQL
