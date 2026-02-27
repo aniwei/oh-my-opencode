@@ -21,6 +21,7 @@
 13. [API 设计](#13-api-设计)
 14. [与现有系统的对比](#14-与现有系统的对比)
 15. [分阶段实施路线](#15-分阶段实施路线)
+16. [云端部署架构](#16-云端部署架构)
 
 ---
 
@@ -31,7 +32,7 @@
 当前 oh-my-opencode 以 **OpenCode Plugin** 形态存在，深度耦合 OpenCode 运行时：
 
 ```
-OpenCode Runtime (Go 进程)
+OpenCode Runtime (TypeScript 进程)
   │
   └─→ Plugin System (fork 子进程)
         └─→ oh-my-opencode (TypeScript)
@@ -45,7 +46,7 @@ OpenCode Runtime (Go 进程)
 
 | 问题 | 描述 |
 |------|------|
-| **Runtime 耦合** | 必须依赖 OpenCode Go 进程的 session/event/config API |
+| **Runtime 耦合** | 必须依赖 OpenCode 宿主进程的 session/event/config API |
 | **IPC 瓶颈** | Plugin 通过 HTTP 与 OpenCode 通信，延迟高 |
 | **部署限制** | 只能作为 OpenCode 插件运行，无法独立使用 |
 | **调试困难** | Plugin 在子进程中运行，断点和日志分散 |
@@ -66,7 +67,7 @@ OpenCode Runtime (Go 进程)
 
 ### 1.3 非目标
 
-- 不重写 OpenCode Runtime（Go → Node.js）
+- 不重写 OpenCode Runtime（保持独立框架定位）
 - 不实现 TUI/GUI
 - 不内置特定 LLM Provider SDK（通过 Adapter 扩展）
 - 不替代 oh-my-opencode 的业务逻辑（框架只提供骨架）
@@ -1280,7 +1281,7 @@ createFramework(options)
 模式 B: OpenCode Plugin Bridge (兼容模式)
   ┌──────────────┐     ┌──────────────────┐
   │ OpenCode     │ ──→ │ Plugin Bridge    │ ──→ framework.handleHook(event)
-  │ Runtime (Go) │     │ (adapter layer)  │
+  │ Runtime (TS) │     │ (adapter layer)  │
   └──────────────┘     └──────────────────┘
 ```
 
@@ -1472,16 +1473,16 @@ const framework = await createFramework({
 
 | 维度 | OpenCode (当前) | oh-my-opencode (当前) | 轻量级框架 (目标) |
 |------|----------------|---------------------|-----------------|
-| **Runtime** | Go 进程 | Go 进程的 TS 插件 | Node.js 独立进程 |
-| **IPC** | 无 (单进程) | HTTP (Go↔TS) | 无 (单进程) |
+| **Runtime** | TypeScript (Bun) | 宿主进程的 TS 插件 | Node.js 独立进程 |
+| **IPC** | 无 (单进程) | HTTP (宿主↔插件) | 无 (单进程) |
 | **Agent 数** | 动态 (config) | 11 内置 + custom | 0 内置 (全由 Plugin 注册) |
 | **Tool 数** | 内置 10+ | 26 | 0 内置 (全由 Plugin 注册) |
 | **Hook 数** | 12 hook points | 46 具体 hooks | 12 hook points + 任意注册 |
 | **配置** | JSONC/TOML | JSONC + Zod v4 | JSONC + Zod v4 |
 | **MCP** | 内置支持 | 3 层 MCP | MCP 适配器 |
-| **LLM 调用** | Go SDK | 通过 Go 代理 | Node.js 直接调用 |
-| **包大小** | ~50MB (Go binary) | ~2MB (TS bundle) | < 500KB (核心) |
-| **依赖** | Go stdlib | @opencode-ai/sdk + Zod + 12 pkgs | Zod (核心唯一) |
+| **LLM 调用** | 内置 TS SDK | 通过宿主代理 | Node.js 直接调用 |
+| **包大小** | ~20MB (Bun bundle) | ~2MB (TS bundle) | < 500KB (核心) |
+| **依赖** | Bun + TS 生态 | @opencode-ai/sdk + Zod + 12 pkgs | Zod (核心唯一) |
 
 ### 14.2 能力对比
 
@@ -1614,6 +1615,460 @@ const framework = await createFramework({
 - `npx @vitamin-coding/cli init` 项目初始化
 - `npx @vitamin-coding/cli run "Build a feature"` 命令行运行
 - API 文档 + 教程 + 示例
+
+### Phase 7: 云端部署 (2 周)
+
+```
+@vitamin-coding/store-postgres  # PostgreSQL Store 实现
+@vitamin-coding/store-redis     # Redis TaskStore + 分布式锁
+@vitamin-coding/store-memory    # 内存 Store (默认/测试)
+@vitamin-coding/server          # HTTP 服务层
+@vitamin-coding/admin           # 管理面板 API
+```
+
+**交付物**:
+- Store Adapter 接口 + 3 种实现 (Memory / PostgreSQL / Redis)
+- 数据库 Migration 脚本
+- Prompt 版本管理 + A/B 测试 API
+- 分布式任务调度 (Redis 队列 + 认领机制)
+- 多租户隔离 (tenant_id 全链路)
+- 审计日志 + 成本追踪 (audit_logs 表)
+- HTTP Server + WebSocket streaming
+- 管理面板 REST API
+
+---
+
+## 16. 云端部署架构
+
+当 Vitamin Coding 从本地单进程部署到云端（多实例、多租户、持久化）时，需要将 **易失性的内存状态** 迁移到 **持久化存储层**。核心原则：框架核心保持存储无关（Storage-Agnostic），通过 **Store Adapter** 接口解耦。
+
+### 16.1 本地 vs 云端：存储归属对比
+
+| 数据类型 | 本地模式 | 云端模式 | 迁移理由 |
+|---------|---------|---------|----------|
+| **Session** | 内存 `Map<string, Session>` | 数据库 (sessions 表) | 多实例共享、进程重启不丢失、支持历史回溯 |
+| **Messages** | Session 内嵌 `messages[]` | 数据库 (messages 表) | 对话记录持久化、支持分页加载、context window 重建 |
+| **Agent Prompts** | 代码常量 / JSONC 文件 | 数据库 (prompts 表) | 在线编辑、A/B 测试、版本管理、多租户隔离 |
+| **Agent Config** | JSONC + Zod 校验 | 数据库 (agent_configs 表) | 动态配置下发、无需重启、租户级覆盖 |
+| **Tool Registry** | 进程内注册 | 进程内注册 (不变) | 工具是代码逻辑，不适合动态化 |
+| **Hook Registry** | 进程内注册 | 进程内注册 (不变) | 中间件是代码逻辑，不适合动态化 |
+| **Skill** | 文件系统 Markdown | 数据库 + CDN (skills 表) | 在线管理、团队共享、版本控制 |
+| **Task Queue** | 内存队列 | Redis / 数据库 (tasks 表) | 分布式任务调度、故障转移、持久化 |
+| **MCP Config** | JSONC 文件 | 数据库 (mcp_configs 表) | 动态启停、租户级配置 |
+| **Model Fallback** | 代码常量 | 数据库 (model_configs 表) | 动态调整优先级、运营侧配置 |
+| **Audit Log** | /tmp 日志文件 | 数据库 (audit_logs 表) | 合规要求、成本分析、问题排查 |
+
+### 16.2 云端分层架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     API Gateway / LB                        │
+│              (认证, 限流, 租户路由)                           │
+└────────────┬────────────────────────────┬───────────────────┘
+             │                            │
+    ┌────────▼────────┐          ┌────────▼────────┐
+    │  Framework       │          │  Framework       │
+    │  Instance A      │          │  Instance B      │   ← 无状态水平扩展
+    │  (Node.js)       │          │  (Node.js)       │
+    └────────┬────────┘          └────────┬────────┘
+             │                            │
+    ┌────────▼────────────────────────────▼───────────────────┐
+    │                   Store Adapter Layer                    │
+    │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────────┐ │
+    │  │ Session  │ │ Prompt   │ │ Config   │ │ Task Queue │ │
+    │  │ Store    │ │ Store    │ │ Store    │ │ Store      │ │
+    │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └─────┬──────┘ │
+    └───────┼────────────┼────────────┼─────────────┼────────┘
+            │            │            │             │
+    ┌───────▼────────────▼────────────▼─────────────▼────────┐
+    │                  持久化层                                │
+    │  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
+    │  │PostgreSQL│  │  Redis   │  │  S3/OSS  │              │
+    │  │(主存储)   │  │(缓存+队列)│  │(大对象)   │              │
+    │  └──────────┘  └──────────┘  └──────────┘              │
+    └────────────────────────────────────────────────────────┘
+```
+
+### 16.3 Store Adapter 接口
+
+框架核心通过 **Store 接口** 解耦存储实现。本地用内存实现，云端用数据库实现：
+
+```typescript
+// ──── Session Store ────
+
+interface SessionStore {
+  create(session: Session): Promise<Session>
+  get(id: string): Promise<Session | null>
+  update(id: string, patch: Partial<Session>): Promise<void>
+  delete(id: string): Promise<void>
+  list(filter?: SessionFilter): Promise<Session[]>
+  getByParent(parentID: string): Promise<Session[]>
+}
+
+// ──── Message Store ────
+
+interface MessageStore {
+  append(sessionID: string, message: Message): Promise<void>
+  list(sessionID: string, options?: { limit?: number; offset?: number }): Promise<Message[]>
+  count(sessionID: string): Promise<number>
+  /** 重建对话上下文 (从数据库加载最近 N 条) */
+  loadContext(sessionID: string, maxTokens: number): Promise<Message[]>
+  /** 清理旧消息 (compaction) */
+  compact(sessionID: string, keepLast: number): Promise<void>
+}
+
+// ──── Prompt Store (核心: 云端 Prompt 管理) ────
+
+interface PromptStore {
+  /** 获取 prompt (按 agent + 版本) */
+  get(agentName: string, version?: string): Promise<PromptRecord | null>
+  /** 保存 prompt 新版本 */
+  save(record: PromptRecord): Promise<PromptRecord>
+  /** 列出 prompt 版本历史 */
+  versions(agentName: string): Promise<PromptVersion[]>
+  /** 激活特定版本 */
+  activate(agentName: string, version: string): Promise<void>
+  /** 按租户获取 prompt 覆盖 */
+  getTenantOverride(agentName: string, tenantID: string): Promise<PromptRecord | null>
+}
+
+interface PromptRecord {
+  agentName: string
+  version: string
+  content: string            // system prompt 内容
+  metadata: {
+    author: string
+    createdAt: Date
+    description?: string
+    tags?: string[]          // 用于 A/B 测试分组
+  }
+  status: "draft" | "active" | "archived"
+}
+
+// ──── Config Store ────
+
+interface ConfigStore {
+  /** 获取 agent 配置 (支持租户级覆盖) */
+  getAgentConfig(agentName: string, tenantID?: string): Promise<AgentConfig | null>
+  /** 获取全局框架配置 */
+  getFrameworkConfig(tenantID?: string): Promise<FrameworkConfig>
+  /** 更新配置 (热更新，不需重启) */
+  update(key: string, value: unknown, tenantID?: string): Promise<void>
+  /** 监听配置变更 */
+  watch(callback: (change: ConfigChange) => void): Disposable
+}
+
+// ──── Task Store (替代内存队列) ────
+
+interface TaskStore {
+  enqueue(task: BackgroundTask): Promise<void>
+  dequeue(concurrencyKey: string): Promise<BackgroundTask | null>
+  update(taskID: string, patch: Partial<BackgroundTask>): Promise<void>
+  get(taskID: string): Promise<BackgroundTask | null>
+  listByParent(parentSessionID: string): Promise<BackgroundTask[]>
+  /** 认领任务 (分布式锁) */
+  claim(taskID: string, workerID: string): Promise<boolean>
+}
+```
+
+### 16.4 数据库 Schema 设计
+
+```sql
+-- ──── 对话管理 ────
+
+CREATE TABLE sessions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL,
+  parent_id     UUID REFERENCES sessions(id),
+  agent_name    VARCHAR(64) NOT NULL,
+  model         JSONB NOT NULL,            -- { provider, model, variant }
+  status        VARCHAR(16) NOT NULL DEFAULT 'idle',
+  metadata      JSONB DEFAULT '{}',
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  INDEX idx_sessions_tenant (tenant_id),
+  INDEX idx_sessions_parent (parent_id),
+  INDEX idx_sessions_status (status)
+);
+
+CREATE TABLE messages (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id    UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  role          VARCHAR(16) NOT NULL,      -- 'user' | 'assistant' | 'tool' | 'system'
+  content       TEXT,
+  tool_call_id  VARCHAR(128),
+  tool_name     VARCHAR(128),
+  parts         JSONB,                     -- 结构化 parts (thinking, tool_use 等)
+  token_count   INT,                       -- 预计算 token 数
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  INDEX idx_messages_session (session_id, created_at)
+);
+
+-- ──── Prompt 版本管理 ────
+
+CREATE TABLE prompts (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_name    VARCHAR(64) NOT NULL,
+  tenant_id     UUID,                      -- NULL = 全局默认
+  version       VARCHAR(32) NOT NULL,
+  content       TEXT NOT NULL,             -- system prompt 全文
+  variables     JSONB DEFAULT '{}',        -- 模板变量 (可注入)
+  status        VARCHAR(16) NOT NULL DEFAULT 'draft',
+  author        VARCHAR(128),
+  description   TEXT,
+  tags          TEXT[],                    -- A/B 测试标签
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (agent_name, tenant_id, version)
+);
+
+-- ──── Agent 动态配置 ────
+
+CREATE TABLE agent_configs (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_name    VARCHAR(64) NOT NULL,
+  tenant_id     UUID,                      -- NULL = 全局默认
+  config        JSONB NOT NULL,            -- AgentConfig JSON
+  active_prompt VARCHAR(32),               -- 关联 prompt 版本
+  fallback_chain JSONB,                    -- FallbackEntry[]
+  disabled      BOOLEAN DEFAULT FALSE,
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (agent_name, tenant_id)
+);
+
+-- ──── 后台任务 (替代内存队列) ────
+
+CREATE TABLE tasks (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL,
+  parent_session  UUID REFERENCES sessions(id),
+  agent_name      VARCHAR(64) NOT NULL,
+  description     TEXT,
+  prompt          TEXT NOT NULL,
+  status          VARCHAR(16) NOT NULL DEFAULT 'pending',
+  concurrency_key VARCHAR(128),            -- "provider/model" 分组
+  worker_id       VARCHAR(128),            -- 认领的 worker 实例 ID
+  result          TEXT,
+  error           TEXT,
+  attempt_count   INT DEFAULT 0,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  started_at      TIMESTAMPTZ,
+  completed_at    TIMESTAMPTZ,
+  INDEX idx_tasks_status (status, concurrency_key),
+  INDEX idx_tasks_parent (parent_session)
+);
+
+-- ──── Skill 管理 ────
+
+CREATE TABLE skills (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          VARCHAR(128) NOT NULL,
+  tenant_id     UUID,
+  scope         VARCHAR(16) NOT NULL,      -- 'builtin' | 'team' | 'project'
+  content       TEXT NOT NULL,             -- Markdown 内容
+  metadata      JSONB DEFAULT '{}',        -- YAML front matter 解析后
+  version       INT DEFAULT 1,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (name, tenant_id)
+);
+
+-- ──── 审计日志 (成本追踪 + 合规) ────
+
+CREATE TABLE audit_logs (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL,
+  session_id    UUID,
+  agent_name    VARCHAR(64),
+  event_type    VARCHAR(64) NOT NULL,      -- 'llm_call' | 'tool_execute' | 'task_delegate' ...
+  model         VARCHAR(128),
+  input_tokens  INT,
+  output_tokens INT,
+  cost_usd      DECIMAL(10, 6),            -- 预估成本
+  duration_ms   INT,
+  metadata      JSONB DEFAULT '{}',
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  INDEX idx_audit_tenant_time (tenant_id, created_at)
+);
+```
+
+### 16.5 Prompt 管理工作流
+
+云端部署时，Prompt 不再硬编码在 `system-prompt.ts` 中，而是通过 Prompt Store 管理：
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                  Prompt 管理工作流                          │
+│                                                            │
+│   ① 开发阶段                                               │
+│   Developer → 编写 prompt → 保存为 "draft" 版本            │
+│   prompt.save({ agentName: "roundtable",                  │
+│                  version: "v2.1",                          │
+│                  content: "...",                           │
+│                  status: "draft" })                        │
+│                                                            │
+│   ② 测试阶段                                               │
+│   QA → A/B 测试 → 按 tag 分流                              │
+│   prompt.activate("roundtable", "v2.1",                   │
+│                    { tags: ["canary"], traffic: 10% })     │
+│                                                            │
+│   ③ 发布阶段                                               │
+│   Ops → 全量激活                                            │
+│   prompt.activate("roundtable", "v2.1")                   │
+│                                                            │
+│   ④ 回滚                                                   │
+│   prompt.activate("roundtable", "v2.0")  ← 秒级回滚       │
+│                                                            │
+│   ⑤ 租户定制                                               │
+│   prompt.saveTenantOverride("roundtable", tenantID,       │
+│     { content: "...定制 prompt..." })                      │
+└────────────────────────────────────────────────────────────┘
+```
+
+### 16.6 Agent 工厂适配
+
+原始工厂函数需要适配云端模式 — prompt 从 Store 加载而非硬编码：
+
+```typescript
+// ──── 本地模式 (不变) ────
+
+function createRoundtableAgent(model: string): AgentConfig {
+  return {
+    model,
+    prompt: buildRoundtableSystemPrompt(),  // 硬编码
+    // ...
+  }
+}
+
+// ──── 云端模式 (通过 Store Adapter) ────
+
+function createCloudAgentFactory(store: PromptStore): AgentFactory {
+  return async function createAgent(model: string, ctx: AgentCreateContext) {
+    // 优先租户覆盖 → 活跃版本 → 代码默认
+    const prompt =
+      (await store.getTenantOverride("roundtable", ctx.tenantID))?.content
+      ?? (await store.get("roundtable"))?.content  // 数据库活跃版本
+      ?? buildRoundtableSystemPrompt()              // 代码兜底
+
+    return {
+      model,
+      prompt,
+      // ...
+    }
+  }
+}
+```
+
+### 16.7 配置解析优先级（云端扩展）
+
+本地的 3 级合并扩展为 5 级：
+
+```
+优先级 (高 → 低):
+  1. 运行时参数         createFramework({ ... })
+  2. 租户级数据库配置    ConfigStore.get(tenantID)
+  3. 全局数据库配置      ConfigStore.get(null)
+  4. 项目 JSONC 文件    .vitamin-coding/config.jsonc    (仅 CLI 模式)
+  5. 用户 JSONC 文件    ~/.config/vitamin-coding/config.jsonc (仅 CLI 模式)
+  6. 框架默认值
+```
+
+### 16.8 分布式任务调度
+
+内存 `ConcurrencyManager` 替换为数据库 + Redis 实现：
+
+```
+┌────────────┐     ┌────────────┐     ┌────────────┐
+│ Instance A │     │ Instance B │     │ Instance C │
+│ (worker)   │     │ (worker)   │     │ (worker)   │
+└─────┬──────┘     └─────┬──────┘     └─────┬──────┘
+      │                  │                  │
+      ▼                  ▼                  ▼
+┌─────────────────────────────────────────────────┐
+│                 Redis (任务协调)                  │
+│  ├─ task:queue:{concurrency_key}   (FIFO 队列)  │
+│  ├─ task:lock:{task_id}            (分布式锁)    │
+│  └─ task:slots:{concurrency_key}   (计数器)      │
+└─────────────────────┬───────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────┐
+│            PostgreSQL (持久化)                    │
+│  tasks 表 — 所有任务状态、结果、审计               │
+└─────────────────────────────────────────────────┘
+
+任务认领流程:
+  1. Worker 调用 Redis BRPOP task:queue:{key} (阻塞等待)
+  2. 获取 taskID → Redis SET task:lock:{id} EX 300 NX (分布式锁)
+  3. 更新 PostgreSQL tasks.worker_id, started_at
+  4. 执行 Chat Loop → 更新 status, result
+  5. 释放 Redis lock → 递减 slots 计数
+```
+
+### 16.9 框架初始化（云端模式）
+
+```typescript
+import { createFramework } from "@vitamin-coding/core"
+import { createPostgresStores } from "@vitamin-coding/store-postgres"
+import { createRedisTaskQueue } from "@vitamin-coding/store-redis"
+
+const stores = createPostgresStores({
+  connectionString: process.env.DATABASE_URL,
+})
+
+const taskQueue = createRedisTaskQueue({
+  url: process.env.REDIS_URL,
+})
+
+const framework = await createFramework({
+  // 存储层替换
+  stores: {
+    sessions: stores.sessions,     // SessionStore → PostgreSQL
+    messages: stores.messages,     // MessageStore → PostgreSQL
+    prompts: stores.prompts,       // PromptStore → PostgreSQL
+    configs: stores.configs,       // ConfigStore → PostgreSQL
+    tasks: taskQueue,              // TaskStore → Redis + PostgreSQL
+    skills: stores.skills,         // SkillStore → PostgreSQL
+    audit: stores.audit,           // AuditStore → PostgreSQL
+  },
+
+  // LLM 适配器 (不变)
+  providers: [
+    anthropicAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
+    openaiAdapter({ apiKey: process.env.OPENAI_API_KEY }),
+  ],
+
+  // 多租户
+  tenantResolver: (req) => req.headers["x-tenant-id"],
+})
+
+// HTTP 服务
+framework.listen(3000)
+```
+
+### 16.10 云端新增包
+
+| 包 | 职责 |
+|---|------|
+| `@vitamin-coding/store-postgres` | PostgreSQL Store 实现 (sessions, messages, prompts, configs, skills, audit) |
+| `@vitamin-coding/store-redis` | Redis TaskStore + 分布式锁 + Pub/Sub 配置变更通知 |
+| `@vitamin-coding/store-memory` | 内存 Store 实现 (本地/测试用, 框架默认) |
+| `@vitamin-coding/server` | HTTP 服务层 (REST API + WebSocket streaming) |
+| `@vitamin-coding/admin` | 管理面板 API (Prompt 编辑, Agent 配置, 任务监控, 成本仪表盘) |
+
+### 16.11 应该入库 vs 不应该入库
+
+| 入库 (有状态, 需持久化) | 不入库 (无状态, 代码定义) | 理由 |
+|----------------------|------------------------|------|
+| Session + Messages | Tool 定义 (execute 函数) | 工具是代码逻辑，不能序列化 |
+| Prompt 内容 + 版本 | Hook 注册 (middleware) | 中间件是代码逻辑 |
+| Agent 配置覆盖 | LLM Adapter 实现 | 适配器是代码逻辑 |
+| Skill 内容 + 元数据 | Zod Schema 定义 | Schema 是类型系统 |
+| Task 队列 + 结果 | FallbackResolver 算法 | 算法不变，数据可变 |
+| Fallback Chain 数据 | defineTool() 工厂函数 | 工厂是代码模板 |
+| MCP 连接配置 | MCP 客户端实现 | 客户端是代码逻辑 |
+| Audit Log | HookEngine 分发逻辑 | 引擎是运行时 |
+
+**原则：数据和配置入库，代码和逻辑留在代码中。**
 
 ---
 
