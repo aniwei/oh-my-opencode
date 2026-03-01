@@ -1,0 +1,46 @@
+// background-output 工具 — 获取后台任务输出
+import { z } from 'zod'
+
+import type { AgentTool, ToolResult } from '@vitamin/agent'
+
+const BackgroundOutputArgsSchema = z.object({
+  taskId: z.string().describe('后台任务 ID'),
+})
+
+type BackgroundOutputArgs = z.infer<typeof BackgroundOutputArgsSchema>
+
+export type GetBackgroundOutputFn = (taskId: string) => Promise<{
+  status: string
+  output?: string
+  error?: string
+}>
+
+export function createBackgroundOutputTool(
+  getOutputFn?: GetBackgroundOutputFn,
+): AgentTool<BackgroundOutputArgs> {
+  return {
+    name: 'background-output',
+    description: '获取后台任务的当前状态和输出。',
+    parameters: BackgroundOutputArgsSchema as unknown as import('@vitamin/ai').ZodType<BackgroundOutputArgs>,
+    visibility: 'always',
+
+    async execute(_id, args, _signal): Promise<ToolResult> {
+      if (!getOutputFn) {
+        return {
+          content: [{ type: 'text', text: 'background-output not available: background manager not initialized' }],
+          isError: true,
+        }
+      }
+
+      const result = await getOutputFn(args.taskId)
+      const text = [
+        `Task: ${args.taskId}`,
+        `Status: ${result.status}`,
+        result.output ? `\nOutput:\n${result.output}` : '',
+        result.error ? `\nError:\n${result.error}` : '',
+      ].filter(Boolean).join('\n')
+
+      return { content: [{ type: 'text', text }] }
+    },
+  }
+}

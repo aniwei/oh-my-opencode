@@ -1,0 +1,46 @@
+// task-get 工具 — 获取任务详情
+import { z } from 'zod'
+
+import type { AgentTool, ToolResult } from '@vitamin/agent'
+
+const TaskGetArgsSchema = z.object({
+  taskId: z.string().describe('任务 ID'),
+})
+
+type TaskGetArgs = z.infer<typeof TaskGetArgsSchema>
+
+export type GetTaskFn = (taskId: string) => Promise<{
+  taskId: string
+  status: string
+  output?: string
+  error?: string
+} | undefined>
+
+export function createTaskGetTool(getFn?: GetTaskFn): AgentTool<TaskGetArgs> {
+  return {
+    name: 'task-get',
+    description: '获取任务的当前状态和结果。',
+    parameters: TaskGetArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskGetArgs>,
+    visibility: 'always',
+
+    async execute(_id, args, _signal): Promise<ToolResult> {
+      if (!getFn) {
+        return { content: [{ type: 'text', text: 'task-get not available' }], isError: true }
+      }
+
+      const task = await getFn(args.taskId)
+      if (!task) {
+        return { content: [{ type: 'text', text: `Task ${args.taskId} not found` }], isError: true }
+      }
+
+      const text = [
+        `Task: ${task.taskId}`,
+        `Status: ${task.status}`,
+        task.output ? `Output:\n${task.output}` : '',
+        task.error ? `Error:\n${task.error}` : '',
+      ].filter(Boolean).join('\n')
+
+      return { content: [{ type: 'text', text }] }
+    },
+  }
+}
