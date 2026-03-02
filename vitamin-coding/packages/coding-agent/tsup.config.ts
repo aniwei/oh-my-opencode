@@ -10,4 +10,10 @@ export default defineConfig({
   outDir: 'dist',
   splitting: false,
   treeshake: true,
+  esbuildOptions(options) {
+    options.loader = {
+      ...(options.loader ?? {}),
+      '.tsx': 'tsx',
+    }
+  },
 })

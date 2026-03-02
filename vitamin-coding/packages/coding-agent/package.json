@@ -20,7 +20,7 @@
   "scripts": {
     "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly",
     "typecheck:project": "tsc -p tsconfig.json --noEmit",
-    "typecheck:file": "tsc src/index.ts --noEmit --target ES2024 --module ESNext --moduleResolution bundler --esModuleInterop --skipLibCheck",
+    "typecheck:file": "tsc src/index.ts --noEmit --target ES2024 --module ESNext --moduleResolution bundler --esModuleInterop --skipLibCheck --jsx react-jsx",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -32,14 +32,23 @@
     "@vitamin/hooks": "workspace:*",
     "@vitamin/mcp": "workspace:*",
     "@vitamin/orchestrator": "workspace:*",
-    "@vitamin/sdk": "workspace:*",
     "@vitamin/server": "workspace:^",
     "@vitamin/session": "workspace:*",
     "@vitamin/shared": "workspace:*",
-    "@vitamin/tools": "workspace:*"
+    "@vitamin/tools": "workspace:*",
+    "blessed": "^0.1.81",
+    "neo-blessed": "^0.2.0",
+    "react": "^17.0.2",
+    "react-blessed": "^0.7.2",
+    "react-blessed-router": "^0.2.6"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
+  },
+  "devDependencies": {
+    "@types/blessed": "^0.1.27",
+    "@types/react": "^17.0.91",
+    "@types/react-blessed": "^0.7.8"
   }
 }

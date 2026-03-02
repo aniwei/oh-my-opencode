@@ -384,7 +384,7 @@ async function initSubsystems(config: unknown, options: CLIOptions): Promise<Sub
 }
 
 // Step 5: 根据模式选择运行器
-function selectMode(mode: RunMode): ModeRunner {
+async function selectMode(mode: RunMode): Promise<ModeRunner> {
   switch (mode) {
     case 'print':
       return createPrintMode()
@@ -392,6 +392,12 @@ function selectMode(mode: RunMode): ModeRunner {
       return createJsonMode()
     case 'rpc':
       return createRpcMode()
+    case 'interactive': {
+      const { createInteractiveMode } = await import('./modes/interactive')
+      return createInteractiveMode()
+    }
+    default:
+      throw new Error(`不支持的运行模式: ${String(mode)}`)
   }
 }
 
@@ -410,7 +416,7 @@ export async function main(options: CLIOptions): Promise<void> {
     const session = await createAgentSession(subsystems, options)
 
     // Step 5: selectMode
-    const mode = selectMode(options.mode)
+    const mode = await selectMode(options.mode)
 
     // Step 6: loadResources (已在 createAgentSession 中完成)
 

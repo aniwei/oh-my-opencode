@@ -94,7 +94,7 @@ export class SseTransport implements McpTransport {
           logger.info('SSE 连接超时，使用 HTTP POST 模式')
           resolve()
         }
-      }, 5000)
+      }, this.requestTimeout)
     })
   }
 

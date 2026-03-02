@@ -26,7 +26,7 @@ export function parseCLIFull(argv: string[]): ParsedCLI {
   const args = argv.slice(2) // 跳过 node 和脚本路径
   let prompt: string | undefined
   let model: string | undefined
-  let mode: RunMode = 'print'
+  let mode: RunMode = 'interactive'
   let configPath: string | undefined
   let projectDir = process.cwd()
   let verbose = false
@@ -66,6 +66,10 @@ export function parseCLIFull(argv: string[]): ParsedCLI {
       case '--print':
       case '-p':
         mode = 'print'
+        break
+      case '--interactive':
+      case '-i':
+        mode = 'interactive'
         break
       case '--json':
         mode = 'json'
@@ -125,7 +129,7 @@ export function parseCLIFull(argv: string[]): ParsedCLI {
         // 非 flag 参数视为 prompt（跳过子命令模式下已处理的 args）
         if (arg && !arg.startsWith('-') && !subCommand) {
           // 带 prompt 自动切换为 print 模式（除非显式指定了其他模式）
-          if (prompt === undefined) {
+          if (prompt === undefined && mode === 'interactive') {
             mode = 'print'
           }
           prompt = prompt !== undefined ? prompt + ' ' + arg : arg
@@ -162,6 +166,7 @@ vitamin - AI 编码助手
   vitamin --json "query"        JSON 输出模式
 
 选项:
+  -i, --interactive         Interactive 模式（默认）
   -p, --print               Print 模式（非交互）
   --json                    JSON 输出模式
   --rpc                     RPC 服务模式（供 SDK 使用）

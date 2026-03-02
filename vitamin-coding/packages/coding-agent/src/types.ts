@@ -10,7 +10,7 @@ import type { ToolRegistry } from '@vitamin/tools'
 import type { ProviderRegistry } from '@vitamin/ai'
 
 // 运行模式
-export type RunMode = 'print' | 'json' | 'rpc'
+export type RunMode = 'interactive' | 'print' | 'json' | 'rpc'
 
 // CLI 解析结果
 export interface CLIOptions {

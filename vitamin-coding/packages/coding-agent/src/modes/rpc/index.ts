@@ -1,8 +1,8 @@
 // RPC 模式 — JSON-RPC 2.0 服务器，供 SDK 远程调用 (§S12.1)
-import { createRpcServer } from '@vitamin/sdk'
 import { createLogger } from '@vitamin/shared'
 
 import { adaptSessionToAgent } from './session-adapter'
+import { createRpcServer } from './rpc-server'
 
 import type { AgentSession, CLIOptions, ModeRunner } from '../../types'
 

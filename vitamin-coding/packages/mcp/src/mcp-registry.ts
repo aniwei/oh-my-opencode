@@ -65,7 +65,19 @@ export class McpRegistry {
     client: McpClient,
     tools: McpToolDefinition[],
   ): void {
-    this.entries.set(name, { name, priority, client, tools })
+    const config =
+      typeof (client as Partial<McpClient>).getConfig === 'function'
+        ? client.getConfig()
+        : { name, transport: 'stdio' as const, command: 'echo' }
+
+    this.entries.set(name, {
+      name,
+      priority,
+      client,
+      tools,
+      config,
+      reconnectAttempts: 0,
+    })
   }
 
   // 注销 MCP 服务器

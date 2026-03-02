@@ -21,7 +21,7 @@ export type { KeyId, KeyHandler, KeyBinding, KeyBindingRegistry } from './core/k
 // 模式
 export { createPrintMode } from './modes/print'
 export { createJsonMode } from './modes/json'
-// export { createInteractiveMode } from './modes/interactive'
+export { createInteractiveMode } from './modes/interactive'
 export { createRpcMode } from './modes/rpc'
 
 // 命令
