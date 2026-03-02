@@ -1,6 +1,6 @@
+import { access, readFile, writeFile } from 'node:fs/promises'
 // `vitamin config` — 配置管理命令
 import { join } from 'node:path'
-import { readFile, writeFile, access } from 'node:fs/promises'
 
 import { createLogger } from '@vitamin/shared'
 
@@ -70,7 +70,9 @@ function setNestedValue(obj: Record<string, unknown>, path: string, value: unkno
 }
 
 // 加载配置文件
-async function loadConfigFile(projectDir: string): Promise<{ config: Record<string, unknown>; path: string }> {
+async function loadConfigFile(
+  projectDir: string,
+): Promise<{ config: Record<string, unknown>; path: string }> {
   const configPath = join(projectDir, '.vitamin', 'config.json')
 
   try {
@@ -88,7 +90,10 @@ async function saveConfigFile(configPath: string, config: Record<string, unknown
 }
 
 // 展平对象为 dot-path 列表（用于 list）
-function flattenConfig(obj: Record<string, unknown>, prefix = ''): Array<{ key: string; value: unknown }> {
+function flattenConfig(
+  obj: Record<string, unknown>,
+  prefix = '',
+): Array<{ key: string; value: unknown }> {
   const entries: Array<{ key: string; value: unknown }> = []
 
   for (const [key, value] of Object.entries(obj)) {
@@ -111,8 +116,8 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
   switch (args.action) {
     case 'get': {
       if (!args.key) {
-        process.stderr.write('Error: vitamin config get requires a key.\n')
-        process.stderr.write('Usage: vitamin config get <key>\n')
+        process.stderr.write('错误：vitamin config get 需要指定 key。\n')
+        process.stderr.write('用法：vitamin config get <key>\n')
         return
       }
 
@@ -120,17 +125,19 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
       const value = getNestedValue(config, args.key)
 
       if (value === undefined) {
-        process.stderr.write(`Key "${args.key}" not found.\n`)
+        process.stderr.write(`未找到 key "${args.key}"。\n`)
       } else {
-        process.stdout.write(typeof value === 'string' ? value + '\n' : JSON.stringify(value, null, 2) + '\n')
+        process.stdout.write(
+          typeof value === 'string' ? value + '\n' : JSON.stringify(value, null, 2) + '\n',
+        )
       }
       break
     }
 
     case 'set': {
       if (!args.key || args.value === undefined) {
-        process.stderr.write('Error: vitamin config set requires key and value.\n')
-        process.stderr.write('Usage: vitamin config set <key> <value>\n')
+        process.stderr.write('错误：vitamin config set 需要 key 和 value。\n')
+        process.stderr.write('用法：vitamin config set <key> <value>\n')
         return
       }
 
@@ -146,7 +153,7 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
 
       setNestedValue(config, args.key, parsedValue)
       await saveConfigFile(path, config)
-      process.stdout.write(`Set ${args.key} = ${JSON.stringify(parsedValue)}\n`)
+      process.stdout.write(`已设置 ${args.key} = ${JSON.stringify(parsedValue)}\n`)
       break
     }
 
@@ -155,11 +162,11 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
       const entries = flattenConfig(config)
 
       if (entries.length === 0) {
-        process.stdout.write('No configuration set.\n')
+        process.stdout.write('当前没有配置项。\n')
         return
       }
 
-      const maxKeyLen = Math.max(...entries.map(e => e.key.length))
+      const maxKeyLen = Math.max(...entries.map((e) => e.key.length))
       for (const entry of entries) {
         const valueStr = typeof entry.value === 'string' ? entry.value : JSON.stringify(entry.value)
         process.stdout.write(`  ${entry.key.padEnd(maxKeyLen + 2)} ${valueStr}\n`)
@@ -181,7 +188,7 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
       try {
         execSync(`${editor} ${path}`, { stdio: 'inherit' })
       } catch {
-        process.stderr.write(`Failed to open editor: ${editor}\n`)
+        process.stderr.write(`打开编辑器失败：${editor}\n`)
       }
       break
     }
@@ -190,13 +197,14 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
       const { path } = await loadConfigFile(projectDir)
       const defaultConfig = {
         $schema: 'https://vitamin.dev/schema.json',
-        defaultModel: 'claude-sonnet',
+        model: 'github-copilot/claude-sonnet-4',
+        defaultModel: 'github-copilot/claude-sonnet-4',
         agents: {},
         categories: {},
         mcps: {},
       }
       await saveConfigFile(path, defaultConfig)
-      process.stdout.write('Configuration reset to defaults.\n')
+      process.stdout.write('配置已重置为默认值。\n')
       break
     }
   }
@@ -205,19 +213,19 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
 // 创建 config 命令帮助
 export function createConfigCommandHelp(): string {
   return `
-vitamin config — Manage configuration
+vitamin config — 配置管理
 
-Subcommands:
-  vitamin config list              List all config entries
-  vitamin config get <key>         Get a config value
-  vitamin config set <key> <val>   Set a config value
-  vitamin config path              Show config file path
-  vitamin config edit              Open config in editor
-  vitamin config reset             Reset to defaults
+子命令:
+  vitamin config list              列出所有配置项
+  vitamin config get <key>         获取配置值
+  vitamin config set <key> <val>   设置配置值
+  vitamin config path              显示配置文件路径
+  vitamin config edit              用编辑器打开配置文件
+  vitamin config reset             重置为默认配置
 
-Examples:
-  vitamin config get defaultModel
-  vitamin config set defaultModel claude-opus
+示例:
+  vitamin config get model
+  vitamin config set model github-copilot/claude-sonnet-4
   vitamin config list
 `.trim()
 }

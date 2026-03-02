@@ -11,7 +11,7 @@ export function createPrintMode(): ModeRunner {
     async run(session: AgentSession, options: CLIOptions): Promise<void> {
       const prompt = options.prompt
       if (!prompt) {
-        process.stderr.write('Error: No prompt provided for print mode.\n')
+        process.stderr.write('错误：print 模式未提供提示词。\n')
         process.exitCode = 1
         return
       }
@@ -25,7 +25,9 @@ export function createPrintMode(): ModeRunner {
 
       // 成本信息到 stderr（不污染 stdout）
       if (result.cost > 0) {
-        process.stderr.write(`\nCost: $${result.cost.toFixed(4)} | Tokens: ${String(result.tokens.input)} in / ${String(result.tokens.output)} out | Duration: ${String(result.duration)}ms\n`)
+        process.stderr.write(
+          `\n成本: $${result.cost.toFixed(4)} | Token: 输入 ${String(result.tokens.input)} / 输出 ${String(result.tokens.output)} | 耗时: ${String(result.duration)}ms\n`,
+        )
       }
     },
   }

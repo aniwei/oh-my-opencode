@@ -21,12 +21,14 @@ export type { KeyId, KeyHandler, KeyBinding, KeyBindingRegistry } from './core/k
 // 模式
 export { createPrintMode } from './modes/print'
 export { createJsonMode } from './modes/json'
-export { createInteractiveMode } from './modes/interactive'
+// export { createInteractiveMode } from './modes/interactive'
+export { createRpcMode } from './modes/rpc'
 
 // 命令
 export { executeRunCommand, createRunCommandHelp } from './commands/run'
 export { executeDoctorCommand, createDoctorCommandHelp } from './commands/doctor'
 export type { CheckResult } from './commands/doctor'
+export { executeAuthCommand, createAuthCommandHelp, readStoredCopilotAuth } from './commands/auth'
 export { executeInstallCommand, createInstallCommandHelp } from './commands/install'
 export type { InstallStep, ReadlineInterface } from './commands/install'
 export { executeConfigCommand, parseConfigArgs, createConfigCommandHelp } from './commands/config'

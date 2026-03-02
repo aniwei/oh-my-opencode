@@ -15,13 +15,10 @@ export interface RunCommandOptions {
 }
 
 // 执行 `vitamin run` 命令
-export async function executeRunCommand(
-  session: AgentSession,
-  options: CLIOptions,
-): Promise<void> {
+export async function executeRunCommand(session: AgentSession, options: CLIOptions): Promise<void> {
   if (!options.prompt) {
-    process.stderr.write('Error: vitamin run requires a prompt argument.\n')
-    process.stderr.write('Usage: vitamin run "Fix the bug in auth.ts"\n')
+    process.stderr.write('错误：vitamin run 需要提供提示词参数。\n')
+    process.stderr.write('用法：vitamin run "修复 auth.ts 中的 bug"\n')
     process.exitCode = 1
     return
   }
@@ -35,19 +32,19 @@ export async function executeRunCommand(
 // 创建 run 命令描述
 export function createRunCommandHelp(): string {
   return `
-vitamin run — Run a one-shot prompt
+vitamin run — 执行一次性任务
 
-Usage:
-  vitamin run <prompt>           Execute a single prompt
-  vitamin run "Fix the bug"      Quick task execution
+用法:
+  vitamin run <prompt>             执行单次提示词任务
+  vitamin run "修复这个 bug"        快速任务执行
 
-Options:
-  -m, --model <id>        Override model for this run
-  --max-tokens <n>        Max output tokens
+选项:
+  -m, --model <id>          指定本次运行模型
+  --max-tokens <n>          最大输出 token 数
 
-Examples:
-  vitamin run "Explain this codebase"
-  vitamin run "Fix the failing test in auth.ts" --model claude-opus
-  vitamin run "Add error handling to the API routes"
+示例:
+  vitamin run "解释这个代码库"
+  vitamin run "修复 auth.ts 里失败的测试" --model claude-opus
+  vitamin run "为 API 路由增加错误处理"
 `.trim()
 }

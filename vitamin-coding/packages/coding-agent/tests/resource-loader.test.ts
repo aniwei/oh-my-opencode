@@ -1,10 +1,10 @@
+import { randomUUID } from 'node:crypto'
 // 资源加载器测试
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { randomUUID } from 'node:crypto'
+import { join } from 'node:path'
 
-import { loadProjectResources, createResourceLoader } from '../src/core/resource-loader'
+import { createResourceLoader, loadProjectResources } from '../src/core/resource-loader'
 
 function createTempProject(): string {
   const dir = join(tmpdir(), `vitamin-test-${randomUUID()}`)

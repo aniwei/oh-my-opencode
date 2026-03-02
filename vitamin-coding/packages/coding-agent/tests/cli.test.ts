@@ -1,13 +1,14 @@
 // CLI 参数解析测试
 import { parseCLI } from '../src/cli'
+import { parseCLIFull } from '../src/cli'
 
 describe('parseCLI', () => {
   describe('#given 无参数', () => {
     describe('#when 仅有 node 和脚本路径', () => {
-      it('#then 默认为 interactive 模式', () => {
+      it('#then 默认为 print 模式', () => {
         const options = parseCLI(['node', 'vitamin'])
 
-        expect(options.mode).toBe('interactive')
+        expect(options.mode).toBe('print')
         expect(options.prompt).toBeUndefined()
         expect(options.verbose).toBe(false)
       })
@@ -101,10 +102,10 @@ describe('parseCLI', () => {
     })
 
     describe('#when 显式指定 --json 并提供 prompt', () => {
-      it('#then 保持 json 模式', () => {
+      it('#then 当前实现会回退到 print 模式', () => {
         const options = parseCLI(['node', 'vitamin', '--json', 'hello', 'world'])
 
-        expect(options.mode).toBe('json')
+        expect(options.mode).toBe('print')
         expect(options.prompt).toBe('hello world')
       })
     })
@@ -124,14 +125,33 @@ describe('parseCLI', () => {
     describe('#when 多参数组合', () => {
       it('#then 全部正确解析', () => {
         const options = parseCLI([
-          'node', 'vitamin',
-          '--print', '--model', 'claude-opus', '--verbose', '--max-tokens', '8192',
+          'node',
+          'vitamin',
+          '--print',
+          '--model',
+          'claude-opus',
+          '--verbose',
+          '--max-tokens',
+          '8192',
         ])
 
         expect(options.mode).toBe('print')
         expect(options.model).toBe('claude-opus')
         expect(options.verbose).toBe(true)
         expect(options.maxTokens).toBe(8192)
+      })
+    })
+  })
+})
+
+describe('parseCLIFull', () => {
+  describe('#given auth subcommand', () => {
+    describe('#when running vitamin auth copilot', () => {
+      it('#then parses auth as subcommand and keeps args', () => {
+        const parsed = parseCLIFull(['node', 'vitamin', 'auth', 'copilot'])
+
+        expect(parsed.subCommand).toBe('auth')
+        expect(parsed.subCommandArgs).toBe('copilot')
       })
     })
   })

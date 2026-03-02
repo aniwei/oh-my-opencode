@@ -31,7 +31,9 @@ export function buildSystemPrompt(
     layers.projectContext,
     layers.activeSkills,
     layers.categoryInfo,
-  ].filter(l => l.length > 0).join('\n\n---\n\n')
+  ]
+    .filter((l) => l.length > 0)
+    .join('\n\n---\n\n')
 }
 
 // 构建各层（可测试）
@@ -46,18 +48,12 @@ export function buildSystemPromptLayers(
 
   // Layer 2: 委派表
   const registrations = agentRegistry.getAvailable()
-  const delegationTable = registrations.length > 0
-    ? buildDelegationTable(registrations)
-    : ''
+  const delegationTable = registrations.length > 0 ? buildDelegationTable(registrations) : ''
 
   // Layer 3: 工具列表
   const tools = toolRegistry.getAll()
-  const toolDescriptions = tools.map(t =>
-    `- ${t.name}: ${t.description}`,
-  ).join('\n')
-  const toolList = tools.length > 0
-    ? `## Available Tools\n\n${toolDescriptions}`
-    : ''
+  const toolDescriptions = tools.map((t) => `- ${t.name}: ${t.description}`).join('\n')
+  const toolList = tools.length > 0 ? `## Available Tools\n\n${toolDescriptions}` : ''
 
   // Layer 4: 项目上下文
   const contextParts: string[] = []
@@ -70,9 +66,10 @@ export function buildSystemPromptLayers(
   const projectContext = contextParts.join('\n\n')
 
   // Layer 5: 活跃 Skill
-  const activeSkills = options.activeSkills && options.activeSkills.length > 0
-    ? `## Active Skills\n\n${options.activeSkills.map(s => `- ${s}`).join('\n')}`
-    : ''
+  const activeSkills =
+    options.activeSkills && options.activeSkills.length > 0
+      ? `## Active Skills\n\n${options.activeSkills.map((s) => `- ${s}`).join('\n')}`
+      : ''
 
   // Layer 6: Category 信息
   const categoryInfo = options.categoryInfo ?? ''

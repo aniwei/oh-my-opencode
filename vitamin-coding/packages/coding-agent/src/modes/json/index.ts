@@ -11,7 +11,7 @@ export function createJsonMode(): ModeRunner {
     async run(session: AgentSession, options: CLIOptions): Promise<void> {
       const prompt = options.prompt
       if (!prompt) {
-        const errorOutput = JSON.stringify({ error: 'No prompt provided' })
+        const errorOutput = JSON.stringify({ error: '未提供提示词' })
         process.stdout.write(errorOutput + '\n')
         process.exitCode = 1
         return

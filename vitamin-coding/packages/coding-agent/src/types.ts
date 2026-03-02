@@ -1,15 +1,16 @@
 // @vitamin/coding-agent 类型定义
 import type { VitaminConfig } from '@vitamin/config'
-import type { HookEngine } from '@vitamin/hooks'
-import type { ToolRegistry } from '@vitamin/tools'
-import type { AgentRegistry, TaskDispatcher, BackgroundManager } from '@vitamin/orchestrator'
-import type { SessionManager } from '@vitamin/session'
 import type { ExtensionRunner } from '@vitamin/extension'
+import type { HookEngine } from '@vitamin/hooks'
 import type { McpRegistry } from '@vitamin/mcp'
-
+import type { AgentRegistry, BackgroundManager, TaskDispatcher } from '@vitamin/orchestrator'
+import type { SessionManager } from '@vitamin/session'
+import type { SessionSummary } from '@vitamin/session'
+import type { ToolRegistry } from '@vitamin/tools'
+import type { ProviderRegistry } from '@vitamin/ai'
 
 // 运行模式
-export type RunMode = 'interactive' | 'print' | 'json' | 'rpc'
+export type RunMode = 'print' | 'json' | 'rpc'
 
 // CLI 解析结果
 export interface CLIOptions {
@@ -21,11 +22,13 @@ export interface CLIOptions {
   verbose: boolean
   maxTokens?: number
   continueSession?: string
+  inspect?: number | true
 }
 
 // 子系统集合
 export interface Subsystems {
   config: VitaminConfig
+  providerRegistry: ProviderRegistry
   toolRegistry: ToolRegistry
   hookEngine: HookEngine
   agentRegistry: AgentRegistry
@@ -34,6 +37,7 @@ export interface Subsystems {
   extensionRunner: ExtensionRunner
   taskDispatcher: TaskDispatcher
   backgroundManager: BackgroundManager
+  server?: any // Optional inspector server, any typed to avoid circular dependency loop if not needed
 }
 
 // AgentSession — 核心会话控制器
@@ -42,6 +46,9 @@ export interface AgentSession {
   subsystems: Subsystems
   state: AgentSessionState
   prompt: (input: string) => Promise<AgentSessionResult>
+  listSessions: () => Promise<SessionSummary[]>
+  switchSession: (sessionId: string) => Promise<void>
+  deleteSession: (sessionId: string) => Promise<void>
   abort: () => void
   getSystemPrompt: () => string
   switchModel: (modelId: string) => void

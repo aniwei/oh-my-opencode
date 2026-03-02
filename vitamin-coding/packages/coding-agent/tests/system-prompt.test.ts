@@ -1,23 +1,29 @@
 // 系统 Prompt 构建测试（验收 4.2.11）
 import { buildSystemPrompt, buildSystemPromptLayers } from '../src/core/system-prompt'
 
-import type { AgentRegistration, AgentPromptMetadata } from '@vitamin/orchestrator'
+import type { AgentPromptMetadata, AgentRegistration } from '@vitamin/orchestrator'
 
 // 创建 mock AgentRegistry
 function createMockAgentRegistry(agents: AgentRegistration[] = []) {
   return {
     getAvailable: () => agents,
     getAll: () => agents,
-    get: (name: string) => agents.find(a => a.name === name),
-    find: (name: string) => agents.find(a => a.name === name),
-    has: (name: string) => agents.some(a => a.name === name),
+    get: (name: string) => agents.find((a) => a.name === name),
+    find: (name: string) => agents.find((a) => a.name === name),
+    has: (name: string) => agents.some((a) => a.name === name),
   } as unknown as import('@vitamin/orchestrator').AgentRegistry
 }
 
 // 创建 mock ToolRegistry
 function createMockToolRegistry(tools: Array<{ name: string; description: string }> = []) {
   return {
-    getAll: () => tools.map(t => ({ ...t, parameters: {}, execute: async () => ({ content: '' }), metadata: { preset: 'standard', builtin: true } })),
+    getAll: () =>
+      tools.map((t) => ({
+        ...t,
+        parameters: {},
+        execute: async () => ({ content: '' }),
+        metadata: { preset: 'standard', builtin: true },
+      })),
     getAvailable: () => [],
   } as unknown as import('@vitamin/tools').ToolRegistry
 }
@@ -29,7 +35,10 @@ const defaultMetadata: AgentPromptMetadata = {
   executionMode: 'sync',
 }
 
-function makeAgent(name: string, mode: 'primary' | 'subagent' | 'all' = 'primary'): AgentRegistration {
+function makeAgent(
+  name: string,
+  mode: 'primary' | 'subagent' | 'all' = 'primary',
+): AgentRegistration {
   return {
     name,
     factory: (() => undefined) as never,
@@ -93,7 +102,8 @@ describe('buildSystemPromptLayers', () => {
       it('#then 包含 AGENTS.md 内容（4.2.11）', () => {
         const agentReg = createMockAgentRegistry()
         const toolReg = createMockToolRegistry()
-        const agentsMdContent = '# Project Overview\n\nThis is a TypeScript monorepo with 13 packages.'
+        const agentsMdContent =
+          '# Project Overview\n\nThis is a TypeScript monorepo with 13 packages.'
         const resources = { agentsMd: agentsMdContent, rules: [], plans: [], extensions: [] }
 
         const layers = buildSystemPromptLayers(agentReg, toolReg, resources)

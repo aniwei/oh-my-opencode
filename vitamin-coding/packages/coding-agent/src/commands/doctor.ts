@@ -1,8 +1,10 @@
+import { access } from 'node:fs/promises'
 // `vitamin doctor` — 环境健康检查
 import { join } from 'node:path'
-import { access } from 'node:fs/promises'
 
 import { createLogger } from '@vitamin/shared'
+
+import { readStoredCopilotAuth } from './auth'
 
 const logger = createLogger('coding-agent:cmd:doctor')
 
@@ -19,18 +21,19 @@ const CHECKS: Array<{
   check: (projectDir: string) => Promise<CheckResult>
 }> = [
   {
-    name: 'Node.js Version',
+    name: 'Node.js 版本',
     check: async () => {
       const version = process.version
       const major = Number(version.slice(1).split('.')[0])
       return {
-        name: 'Node.js Version',
+        name: 'Node.js 版本',
         status: major >= 22 ? 'pass' : major >= 20 ? 'warn' : 'fail',
-        message: major >= 22
-          ? `${version} (recommended)`
-          : major >= 20
-            ? `${version} (works, but >=22 recommended)`
-            : `${version} (requires >=22.0.0)`,
+        message:
+          major >= 22
+            ? `${version}（推荐）`
+            : major >= 20
+              ? `${version}（可用，但建议 >=22）`
+              : `${version}（需要 >=22.0.0）`,
       }
     },
   },
@@ -41,7 +44,7 @@ const CHECKS: Array<{
       return {
         name: 'Anthropic API Key',
         status: key ? 'pass' : 'warn',
-        message: key ? 'Set (sk-...redacted)' : 'Not set — Anthropic models will not work',
+        message: key ? '已设置（sk-...已隐藏）' : '未设置 — Anthropic 模型不可用',
       }
     },
   },
@@ -52,7 +55,7 @@ const CHECKS: Array<{
       return {
         name: 'OpenAI API Key',
         status: key ? 'pass' : 'warn',
-        message: key ? 'Set (redacted)' : 'Not set — OpenAI models will not work',
+        message: key ? '已设置（已隐藏）' : '未设置 — OpenAI 模型不可用',
       }
     },
   },
@@ -63,19 +66,40 @@ const CHECKS: Array<{
       return {
         name: 'Google API Key',
         status: key ? 'pass' : 'warn',
-        message: key ? 'Set (redacted)' : 'Not set — Gemini models will not work',
+        message: key ? '已设置（已隐藏）' : '未设置 — Gemini 模型不可用',
       }
     },
   },
   {
-    name: 'Project Config',
+    name: 'GitHub Copilot Token',
+    check: async () => {
+      const key = process.env['GITHUB_TOKEN']
+      const stored = key ? undefined : await readStoredCopilotAuth()
+      const ok = !!key || !!stored
+      return {
+        name: 'GitHub Copilot Token',
+        status: ok ? 'pass' : 'warn',
+        message: ok
+          ? key
+            ? '已设置（环境变量）'
+            : '已设置（本地 OAuth 存储）'
+          : '未设置 — Copilot 模型不可用',
+      }
+    },
+  },
+  {
+    name: '项目配置',
     check: async (projectDir) => {
       const configPath = join(projectDir, '.vitamin', 'config.json')
       try {
         await access(configPath)
-        return { name: 'Project Config', status: 'pass', message: `.vitamin/config.json found` }
+        return { name: '项目配置', status: 'pass', message: `已找到 .vitamin/config.json` }
       } catch {
-        return { name: 'Project Config', status: 'warn', message: 'No .vitamin/config.json — using defaults' }
+        return {
+          name: '项目配置',
+          status: 'warn',
+          message: '未找到 .vitamin/config.json — 将使用默认配置',
+        }
       }
     },
   },
@@ -85,21 +109,29 @@ const CHECKS: Array<{
       const agentsPath = join(projectDir, 'AGENTS.md')
       try {
         await access(agentsPath)
-        return { name: 'AGENTS.md', status: 'pass', message: 'Found — will be injected into system prompt' }
+        return {
+          name: 'AGENTS.md',
+          status: 'pass',
+          message: '已找到 — 将注入系统提示词',
+        }
       } catch {
-        return { name: 'AGENTS.md', status: 'warn', message: 'Not found — consider adding project context' }
+        return {
+          name: 'AGENTS.md',
+          status: 'warn',
+          message: '未找到 — 建议补充项目上下文',
+        }
       }
     },
   },
   {
-    name: 'Git Repository',
+    name: 'Git 仓库',
     check: async (projectDir) => {
       const gitPath = join(projectDir, '.git')
       try {
         await access(gitPath)
-        return { name: 'Git Repository', status: 'pass', message: 'Git repository detected' }
+        return { name: 'Git 仓库', status: 'pass', message: '已检测到 Git 仓库' }
       } catch {
-        return { name: 'Git Repository', status: 'warn', message: 'Not a git repository' }
+        return { name: 'Git 仓库', status: 'warn', message: '当前目录不是 Git 仓库' }
       }
     },
   },
@@ -125,7 +157,7 @@ const RESET = '\x1b[0m'
 export async function executeDoctorCommand(projectDir: string): Promise<void> {
   logger.info('Running doctor checks for project: %s', projectDir)
 
-  process.stdout.write('\nvitamin doctor — Environment Health Check\n')
+  process.stdout.write('\nvitamin doctor — 环境健康检查\n')
   process.stdout.write('─'.repeat(50) + '\n\n')
 
   const results: CheckResult[] = []
@@ -137,19 +169,17 @@ export async function executeDoctorCommand(projectDir: string): Promise<void> {
     const icon = STATUS_ICONS[result.status]
     const statusColor = STATUS_COLORS[result.status]
     process.stdout.write(
-      `  ${statusColor}${icon}${RESET}  ${result.name.padEnd(22)} ${result.message}\n`
+      `  ${statusColor}${icon}${RESET}  ${result.name.padEnd(22)} ${result.message}\n`,
     )
   }
 
   process.stdout.write('\n' + '─'.repeat(50) + '\n')
 
-  const passCount = results.filter(r => r.status === 'pass').length
-  const warnCount = results.filter(r => r.status === 'warn').length
-  const failCount = results.filter(r => r.status === 'fail').length
+  const passCount = results.filter((r) => r.status === 'pass').length
+  const warnCount = results.filter((r) => r.status === 'warn').length
+  const failCount = results.filter((r) => r.status === 'fail').length
 
-  process.stdout.write(
-    `  ${passCount} passed, ${warnCount} warnings, ${failCount} failures\n\n`
-  )
+  process.stdout.write(`  通过 ${passCount} 项，警告 ${warnCount} 项，失败 ${failCount} 项\n\n`)
 
   if (failCount > 0) {
     process.exitCode = 1
@@ -159,16 +189,16 @@ export async function executeDoctorCommand(projectDir: string): Promise<void> {
 // 创建 doctor 命令帮助
 export function createDoctorCommandHelp(): string {
   return `
-vitamin doctor — Check environment health
+vitamin doctor — 检查环境健康状态
 
-Checks:
-  - Node.js version (>=22.0.0 required)
-  - API keys (Anthropic, OpenAI, Google)
-  - Project configuration
-  - AGENTS.md presence
-  - Git repository status
+检查项:
+  - Node.js 版本（要求 >=22.0.0）
+  - API Key / Token（Anthropic、OpenAI、Google、GitHub Copilot）
+  - 项目配置文件
+  - AGENTS.md 是否存在
+  - Git 仓库状态
 
-Usage:
+用法:
   vitamin doctor
 `.trim()
 }

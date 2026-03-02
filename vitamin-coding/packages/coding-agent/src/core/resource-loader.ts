@@ -20,7 +20,9 @@ async function safeReadFile(path: string): Promise<string | null> {
 // 安全列出目录中的 .md 文件
 async function listMdFiles(dir: string): Promise<string[]> {
   try {
-    const exists = await stat(dir).then(() => true).catch(() => false)
+    const exists = await stat(dir)
+      .then(() => true)
+      .catch(() => false)
     if (!exists) return []
 
     const entries = await readdir(dir)
@@ -69,7 +71,8 @@ export async function loadProjectResources(projectDir: string): Promise<ProjectR
     // 忽略
   }
 
-  logger.debug('Resources loaded: AGENTS.md=%s, rules=%d, plans=%d',
+  logger.debug(
+    'Resources loaded: AGENTS.md=%s, rules=%d, plans=%d',
     agentsMd !== null ? 'found' : 'not found',
     rules.length,
     plans.length,

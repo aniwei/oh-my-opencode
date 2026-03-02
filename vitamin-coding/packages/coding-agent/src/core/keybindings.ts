@@ -5,13 +5,29 @@ const logger = createLogger('coding-agent:keybindings')
 
 // 按键标识符
 export type KeyId =
-  | 'ctrl+c' | 'ctrl+d' | 'ctrl+z' | 'ctrl+l'
-  | 'ctrl+a' | 'ctrl+e' | 'ctrl+k' | 'ctrl+u'
-  | 'up' | 'down' | 'left' | 'right'
-  | 'tab' | 'shift+tab'
-  | 'enter' | 'escape' | 'backspace' | 'delete'
-  | 'pageup' | 'pagedown'
-  | 'home' | 'end'
+  | 'ctrl+c'
+  | 'ctrl+d'
+  | 'ctrl+b'
+  | 'ctrl+z'
+  | 'ctrl+l'
+  | 'ctrl+a'
+  | 'ctrl+e'
+  | 'ctrl+k'
+  | 'ctrl+u'
+  | 'up'
+  | 'down'
+  | 'left'
+  | 'right'
+  | 'tab'
+  | 'shift+tab'
+  | 'enter'
+  | 'escape'
+  | 'backspace'
+  | 'delete'
+  | 'pageup'
+  | 'pagedown'
+  | 'home'
+  | 'end'
 
 // 按键处理器
 export type KeyHandler = () => Promise<void> | void
@@ -59,13 +75,17 @@ export function createKeyBindings(): KeyBindingRegistry {
         await binding.handler()
         return true
       } catch (error) {
-        logger.error('Key handler error for %s: %s', key, error instanceof Error ? error.message : String(error))
+        logger.error(
+          'Key handler error for %s: %s',
+          key,
+          error instanceof Error ? error.message : String(error),
+        )
         return false
       }
     },
 
     listAll(): ReadonlyArray<{ key: KeyId; description: string }> {
-      return Array.from(bindings.values()).map(b => ({
+      return Array.from(bindings.values()).map((b) => ({
         key: b.key,
         description: b.description,
       }))
@@ -83,20 +103,21 @@ export const DEFAULT_KEY_DESCRIPTIONS: Record<string, string> = {
   'ctrl+d': 'Exit vitamin',
   'ctrl+l': 'Clear screen',
   'ctrl+z': 'Suspend process',
-  'tab': 'Switch page / Tab completion',
+  tab: 'Switch page / Tab completion',
   'shift+tab': 'Switch page (reverse)',
-  'up': 'Previous message / Navigate up',
-  'down': 'Next message / Navigate down',
-  'enter': 'Submit input / Confirm',
-  'escape': 'Cancel editing / Close overlay',
-  'pageup': 'Scroll up',
-  'pagedown': 'Scroll down',
+  up: 'Previous message / Navigate up',
+  down: 'Next message / Navigate down',
+  enter: 'Submit input / Confirm',
+  escape: 'Cancel editing / Close overlay',
+  pageup: 'Scroll up',
+  pagedown: 'Scroll down',
 }
 
 // 序列-to-KeyId 映射（raw mode 中的转义序列）
 const SEQUENCE_MAP: Record<string, KeyId> = {
   '\x03': 'ctrl+c',
   '\x04': 'ctrl+d',
+  '\x02': 'ctrl+b',
   '\x1a': 'ctrl+z',
   '\x0c': 'ctrl+l',
   '\x01': 'ctrl+a',

@@ -21,89 +21,142 @@ export function parseSlashCommand(input: string): { name: string; args: string }
 
 const modelCommand: SlashCommandDef = {
   name: 'model',
-  description: 'Switch the current model',
+  description: '切换当前模型',
   usage: '/model <model-id>',
   handler: async (args, session) => {
     if (args.length === 0) {
-      return `Current model: ${session.state.currentModel}`
+      return `当前模型：${session.state.currentModel}`
     }
     session.switchModel(args)
-    return `Switched to model: ${args}`
+    return `已切换到模型：${args}`
   },
 }
 
 const clearCommand: SlashCommandDef = {
   name: 'clear',
-  description: 'Clear the current conversation',
+  description: '清空当前对话',
   handler: async (_args, _session) => {
-    return 'Conversation cleared.'
+    return '对话已清空。'
   },
 }
 
 const compactCommand: SlashCommandDef = {
   name: 'compact',
-  description: 'Compact the current session to reduce context size',
+  description: '压缩当前会话以减少上下文占用',
   handler: async (_args, session) => {
     await session.compact()
-    return 'Session compacted.'
+    return '会话已压缩。'
   },
 }
 
 const sessionCommand: SlashCommandDef = {
   name: 'session',
-  description: 'Manage sessions (list, switch, delete)',
+  description: '会话管理（list、switch、delete）',
   usage: '/session <list|switch|delete> [id]',
   handler: async (args, session) => {
     const [subcommand, id] = args.split(/\s+/)
 
     switch (subcommand) {
       case 'list': {
-        const sessions = await session.subsystems.sessionManager.list()
-        if (sessions.length === 0) return 'No sessions found.'
-        return sessions.map(s => `- ${s.id}: ${s.title} (${String(s.messageCount)} messages)`).join('\n')
+        const sessions = await session.listSessions()
+        if (sessions.length === 0) return '未找到会话。'
+        return sessions
+          .map((s) => {
+            const active = s.id === session.id ? ' [active]' : ''
+            return `- ${s.id}: ${s.title}（${String(s.messageCount)} 条消息）${active}`
+          })
+          .join('\n')
       }
       case 'switch': {
-        if (!id) return 'Usage: /session switch <id>'
-        return `Switched to session: ${id}`
+        if (!id) return '用法：/session switch <id>'
+        try {
+          await session.switchSession(id)
+          return `已切换到会话：${id}`
+        } catch {
+          return `会话不存在：${id}`
+        }
       }
       case 'delete': {
-        if (!id) return 'Usage: /session delete <id>'
-        await session.subsystems.sessionManager.remove(id)
-        return `Session ${id} deleted.`
+        if (!id) return '用法：/session delete <id>'
+        try {
+          await session.deleteSession(id)
+        } catch (error) {
+          if (error instanceof Error && error.message === 'Cannot delete active session') {
+            return `不能删除当前会话：${id}`
+          }
+          return `会话不存在：${id}`
+        }
+        return `会话 ${id} 已删除。`
       }
       default:
-        return 'Usage: /session <list|switch|delete> [id]'
+        return '用法：/session <list|switch|delete> [id]'
     }
   },
 }
 
 const exportCommand: SlashCommandDef = {
   name: 'export',
-  description: 'Export the current session',
+  description: '导出当前会话',
   usage: '/export [html|md]',
   handler: async (args, _session) => {
     const format = args || 'html'
-    return `Session exported as ${format}. (implementation pending)`
+    return `会话已导出为 ${format}。（功能待完善）`
+  },
+}
+
+const initCommand: SlashCommandDef = {
+  name: 'init',
+  description: '初始化项目级代理配置',
+  usage: '/init',
+  handler: async (_args, _session) => {
+    return '初始化向导已触发。（功能待完善）'
+  },
+}
+
+const undoCommand: SlashCommandDef = {
+  name: 'undo',
+  description: '撤销上一条用户消息',
+  usage: '/undo',
+  handler: async (_args, _session) => {
+    return '已撤销上一条消息。（功能待完善）'
+  },
+}
+
+const redoCommand: SlashCommandDef = {
+  name: 'redo',
+  description: '重做最近一次撤销',
+  usage: '/redo',
+  handler: async (_args, _session) => {
+    return '已重做上一条撤销操作。（功能待完善）'
+  },
+}
+
+const shareCommand: SlashCommandDef = {
+  name: 'share',
+  description: '分享当前会话',
+  usage: '/share',
+  handler: async (_args, _session) => {
+    return '分享已创建。（功能待完善）'
   },
 }
 
 const helpCommand: SlashCommandDef = {
   name: 'help',
-  description: 'Show available commands',
+  description: '显示可用命令',
   handler: async (_args, _session) => {
-    return BUILTIN_COMMANDS.map(c => `/${c.name} — ${c.description}`).join('\n')
+    return BUILTIN_COMMANDS.map((c) => `/${c.name} — ${c.description}`).join('\n')
   },
 }
 
 const costCommand: SlashCommandDef = {
   name: 'cost',
-  description: 'Show accumulated cost information',
+  description: '显示累计成本信息',
   handler: async (_args, session) => {
     const { totalCost, totalTokens } = session.state
     return [
-      `Total cost: $${totalCost.toFixed(4)}`,
-      `Input tokens: ${String(totalTokens.input)}`,
-      `Output tokens: ${String(totalTokens.output)}`,
+      `总成本：$${totalCost.toFixed(4)}`,
+      `输入 Token：${String(totalTokens.input)}`,
+      `输出 Token：${String(totalTokens.output)}`,
     ].join('\n')
   },
 }
@@ -115,6 +168,10 @@ export const BUILTIN_COMMANDS: SlashCommandDef[] = [
   compactCommand,
   sessionCommand,
   exportCommand,
+  initCommand,
+  undoCommand,
+  redoCommand,
+  shareCommand,
   helpCommand,
   costCommand,
 ]
@@ -146,7 +203,7 @@ export class SlashCommandRegistry {
     if (parsed === null) return null
 
     const command = this.commands.get(parsed.name)
-    if (!command) return `Unknown command: /${parsed.name}. Type /help for available commands.`
+    if (!command) return `未知命令：/${parsed.name}。输入 /help 查看可用命令。`
 
     return command.handler(parsed.args, session)
   }

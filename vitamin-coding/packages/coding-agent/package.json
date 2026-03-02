@@ -4,6 +4,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "vitamin": "./bin/vitamin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -11,25 +14,29 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc -p tsconfig.json --emitDeclarationOnly",
+    "typecheck:project": "tsc -p tsconfig.json --noEmit",
+    "typecheck:file": "tsc src/index.ts --noEmit --target ES2024 --module ESNext --moduleResolution bundler --esModuleInterop --skipLibCheck",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@vitamin/shared": "workspace:*",
-    "@vitamin/config": "workspace:*",
-    "@vitamin/ai": "workspace:*",
     "@vitamin/agent": "workspace:*",
-    "@vitamin/hooks": "workspace:*",
-    "@vitamin/tools": "workspace:*",
-    "@vitamin/orchestrator": "workspace:*",
-    "@vitamin/session": "workspace:*",
+    "@vitamin/ai": "workspace:*",
+    "@vitamin/config": "workspace:*",
     "@vitamin/extension": "workspace:*",
+    "@vitamin/hooks": "workspace:*",
     "@vitamin/mcp": "workspace:*",
-    "@vitamin/tui": "workspace:*"
+    "@vitamin/orchestrator": "workspace:*",
+    "@vitamin/sdk": "workspace:*",
+    "@vitamin/server": "workspace:^",
+    "@vitamin/session": "workspace:*",
+    "@vitamin/shared": "workspace:*",
+    "@vitamin/tools": "workspace:*"
   },
   "publishConfig": {
     "access": "public",

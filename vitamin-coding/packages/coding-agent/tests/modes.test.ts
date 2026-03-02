@@ -1,8 +1,8 @@
 // Print/JSON 模式测试（验收 4.2.1, 4.2.3）
-import type { AgentSession, AgentSessionResult, AgentSessionState, CLIOptions, Subsystems } from '../src/types'
+import type { AgentSession, AgentSessionResult, CLIOptions, Subsystems } from '../src/types'
 
-import { createPrintMode } from '../src/modes/print'
 import { createJsonMode } from '../src/modes/json'
+import { createPrintMode } from '../src/modes/print'
 
 // 创建 mock session
 function createMockSession(promptResponse: AgentSessionResult): AgentSession {
@@ -119,7 +119,11 @@ describe('createPrintMode', () => {
     describe('#when 未提供 prompt', () => {
       it('#then 输出错误到 stderr', async () => {
         const session = createMockSession({
-          response: '', cost: 0, tokens: { input: 0, output: 0 }, toolCalls: [], duration: 0,
+          response: '',
+          cost: 0,
+          tokens: { input: 0, output: 0 },
+          toolCalls: [],
+          duration: 0,
         })
         const options = createDefaultOptions() // no prompt
         const mode = createPrintMode()
@@ -182,7 +186,11 @@ describe('createJsonMode', () => {
     describe('#when 未提供 prompt', () => {
       it('#then 输出 JSON 错误对象', async () => {
         const session = createMockSession({
-          response: '', cost: 0, tokens: { input: 0, output: 0 }, toolCalls: [], duration: 0,
+          response: '',
+          cost: 0,
+          tokens: { input: 0, output: 0 },
+          toolCalls: [],
+          duration: 0,
         })
         const options = createDefaultOptions() // no prompt
         const mode = createJsonMode()

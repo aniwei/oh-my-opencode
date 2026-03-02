@@ -1,0 +1,7 @@
+{
+  "$schema": "https://vitamin.dev/schema.json",
+  "defaultModel": "claude-sonnet",
+  "agents": {},
+  "categories": {},
+  "mcps": {}
+}

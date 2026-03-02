@@ -30,6 +30,7 @@ vitamin                        # Interactive mode (default)
 vitamin "fix the login bug"    # Print mode with initial prompt
 vitamin run --json             # JSON output mode
 vitamin doctor                 # Health diagnostics
+vitamin auth copilot           # GitHub Copilot OAuth 登录
 vitamin install                # Interactive setup wizard
 vitamin config get agents      # Config management
 ```
@@ -48,6 +49,7 @@ vitamin config get agents      # Config management
 | `createPrintMode` | Streaming print mode |
 | `createJsonMode` | Structured JSON output mode |
 | `executeDoctorCommand` | Doctor diagnostics |
+| `executeAuthCommand` | OAuth auth command |
 | `executeInstallCommand` | Install wizard |
 | `executeConfigCommand` | Config CLI |
 

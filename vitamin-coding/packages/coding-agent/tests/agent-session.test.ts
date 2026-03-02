@@ -1,13 +1,19 @@
+import { randomUUID } from 'node:crypto'
 // AgentSession 测试（验收 4.2.7 + 会话核心行为）
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { randomUUID } from 'node:crypto'
+import { join } from 'node:path'
 
 import { createAgentSession } from '../src/core/agent-session'
 
-import type { AgentRegistration, AgentFactory, AgentInstance, AgentResult } from '@vitamin/orchestrator'
-import type { Subsystems, CLIOptions } from '../src/types'
+import type {
+  AgentFactoryOptions,
+  AgentFactory,
+  AgentInstance,
+  AgentRegistration,
+  AgentResult,
+} from '@vitamin/orchestrator'
+import type { CLIOptions, Subsystems } from '../src/types'
 
 // 创建临时项目目录
 function createTempProject(): string {
@@ -43,13 +49,19 @@ function createMockAgentFactory(output: string): AgentFactory {
 function createMockSubsystems(overrides?: {
   agentOutput?: string
   hasAgent?: boolean
+  onFactoryOptions?: (options?: AgentFactoryOptions) => void
 }): Subsystems {
   const agentOutput = overrides?.agentOutput ?? 'Hello, I can help with that.'
   const hasAgent = overrides?.hasAgent ?? true
+  const sessionEntries = new Map<string, Array<{ type: string }>>([['existing-session', []]])
+  let sessionCounter = 0
 
   const mockRegistration: AgentRegistration = {
     name: 'sisyphus',
-    factory: createMockAgentFactory(agentOutput),
+    factory: (_model, _tools, options) => {
+      overrides?.onFactoryOptions?.(options)
+      return createMockAgentInstance(agentOutput)
+    },
     mode: 'primary',
     metadata: {
       category: 'orchestrator',
@@ -67,6 +79,16 @@ function createMockSubsystems(overrides?: {
 
   return {
     config: {} as never,
+    providerRegistry: {
+      register: () => undefined,
+      get: () => {
+        throw new Error('not implemented')
+      },
+      has: () => true,
+      list: () => [],
+      unregister: () => undefined,
+      clear: () => undefined,
+    } as never,
     toolRegistry: {
       getAll: () => [],
       getAvailable: () => [],
@@ -77,11 +99,49 @@ function createMockSubsystems(overrides?: {
       },
     },
     agentRegistry: {
-      find: (name: string) => (hasAgent && name === 'sisyphus') ? mockRegistration : undefined,
-      getAvailable: () => hasAgent ? [mockRegistration] : [],
-      getAll: () => hasAgent ? [mockRegistration] : [],
+      find: (name: string) => (hasAgent && name === 'sisyphus' ? mockRegistration : undefined),
+      getAvailable: () => (hasAgent ? [mockRegistration] : []),
+      getAll: () => (hasAgent ? [mockRegistration] : []),
     },
     sessionManager: {
+      create: async () => {
+        sessionCounter += 1
+        const id = `created-session-${String(sessionCounter)}`
+        sessionEntries.set(id, [])
+        return {
+          id,
+          title: `Session ${String(sessionCounter)}`,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messageCount: 0,
+          tags: [],
+          tokenUsage: {
+            inputTokens: 0,
+            outputTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+            totalCost: 0,
+          },
+        }
+      },
+      getTree: async (sessionId: string) => {
+        const entries = sessionEntries.get(sessionId)
+        if (!entries) {
+          throw new Error('session not found')
+        }
+
+        return {
+          getActiveMessages: () => entries,
+        }
+      },
+      appendMessage: async (sessionId: string) => {
+        const entries = sessionEntries.get(sessionId)
+        if (!entries) {
+          throw new Error('session not found')
+        }
+        entries.push({ type: 'message' })
+      },
+      compact: async () => undefined,
       list: async () => [],
       remove: async () => undefined,
     },
@@ -148,6 +208,17 @@ describe('createAgentSession', () => {
         expect(session.state.currentModel).toBe('gpt-4o')
       })
     })
+
+    describe('#when 指定 continueSession', () => {
+      it('#then 使用现有会话作为 active session', async () => {
+        const subs = createMockSubsystems()
+        const options = { ...createDefaultOptions(projectDir), continueSession: 'existing-session' }
+
+        const session = await createAgentSession(subs, options)
+
+        expect(session.id).toBe('existing-session')
+      })
+    })
   })
 
   describe('#given 已创建的 session', () => {
@@ -162,6 +233,21 @@ describe('createAgentSession', () => {
         expect(result.tokens.input).toBe(100)
         expect(result.tokens.output).toBe(50)
         expect(result.duration).toBeGreaterThanOrEqual(0)
+      })
+
+      it('#then 透传 providerRegistry 到 agent factory', async () => {
+        let receivedOptions: AgentFactoryOptions | undefined
+        const subs = createMockSubsystems({
+          agentOutput: 'ok',
+          onFactoryOptions: (options) => {
+            receivedOptions = options
+          },
+        })
+
+        const session = await createAgentSession(subs, createDefaultOptions(projectDir))
+        await session.prompt('hello')
+
+        expect(receivedOptions?.providerRegistry).toBe(subs.providerRegistry)
       })
     })
 
@@ -213,7 +299,7 @@ describe('createAgentSession', () => {
 
         const result = await session.prompt('/model claude-opus')
 
-        expect(result.response).toContain('Switched')
+        expect(result.response).toContain('已切换到模型')
         expect(session.state.currentModel).toBe('claude-opus')
       })
     })
@@ -269,10 +355,35 @@ describe('createAgentSession', () => {
     })
   })
 
+  describe('#given session lifecycle methods', () => {
+    describe('#when switchSession 到已存在会话', () => {
+      it('#then active session id 更新', async () => {
+        const subs = createMockSubsystems()
+        const session = await createAgentSession(subs, createDefaultOptions(projectDir))
+
+        await session.switchSession('existing-session')
+
+        expect(session.id).toBe('existing-session')
+      })
+    })
+
+    describe('#when deleteSession 删除当前活跃会话', () => {
+      it('#then 抛出错误', async () => {
+        const subs = createMockSubsystems()
+        const session = await createAgentSession(subs, createDefaultOptions(projectDir))
+
+        await expect(session.deleteSession(session.id)).rejects.toThrow('Cannot delete active session')
+      })
+    })
+  })
+
   describe('#given getSystemPrompt', () => {
     describe('#when 项目有 AGENTS.md', () => {
       it('#then 系统 prompt 包含 AGENTS.md 内容（4.2.11）', async () => {
-        writeFileSync(join(projectDir, 'AGENTS.md'), '# My Amazing Project\n\nBuilt with TypeScript.')
+        writeFileSync(
+          join(projectDir, 'AGENTS.md'),
+          '# My Amazing Project\n\nBuilt with TypeScript.',
+        )
         const subs = createMockSubsystems()
         const session = await createAgentSession(subs, createDefaultOptions(projectDir))
 
