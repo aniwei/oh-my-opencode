@@ -17,11 +17,15 @@ interface McpEntry {
   priority: McpPriority
   client: McpClient
   tools: McpToolDefinition[]
+  config: McpServerConfig
+  reconnectAttempts: number
 }
 
 // MCP 注册表
 export class McpRegistry {
   private readonly entries: Map<string, McpEntry> = new Map()
+  private static readonly MAX_RECONNECT_ATTEMPTS = 3
+  private static readonly RECONNECT_BASE_DELAY_MS = 1000
 
   // 注册 MCP 服务器（连接 + 获取工具列表）
   async register(
@@ -39,6 +43,8 @@ export class McpRegistry {
         priority,
         client,
         tools,
+        config,
+        reconnectAttempts: 0,
       })
 
       logger.info(
@@ -145,6 +151,69 @@ export class McpRegistry {
   // 获取 MCP 条目数量
   get size(): number {
     return this.entries.size
+  }
+
+  // 自动重连断开的 MCP 服务器（指数退避）
+  async reconnect(name: string): Promise<boolean> {
+    const entry = this.entries.get(name)
+    if (!entry) {
+      logger.warn(`MCP ${name} 未注册，无法重连`)
+      return false
+    }
+
+    if (entry.reconnectAttempts >= McpRegistry.MAX_RECONNECT_ATTEMPTS) {
+      logger.error(`MCP ${name} 重连尝试已达上限 (${String(McpRegistry.MAX_RECONNECT_ATTEMPTS)})`)
+      return false
+    }
+
+    entry.reconnectAttempts++
+    const delay = McpRegistry.RECONNECT_BASE_DELAY_MS * Math.pow(2, entry.reconnectAttempts - 1)
+    logger.info(`MCP ${name} 将在 ${String(delay)}ms 后重连（第 ${String(entry.reconnectAttempts)} 次）`)
+
+    await new Promise((resolve) => setTimeout(resolve, delay))
+
+    try {
+      await entry.client.disconnect()
+      const newClient = createMcpClient(entry.config)
+      await newClient.connect()
+      const tools = await newClient.listTools()
+
+      entry.client = newClient
+      entry.tools = tools
+      entry.reconnectAttempts = 0
+
+      logger.info(`MCP ${name} 重连成功，${String(tools.length)} 个工具`)
+      return true
+    } catch (error) {
+      logger.error(`MCP ${name} 重连失败: ${String(error)}`)
+      return false
+    }
+  }
+
+  // 检查并重连所有断开的 MCP
+  async reconnectDisconnected(): Promise<string[]> {
+    const reconnected: string[] = []
+
+    for (const [name, entry] of this.entries) {
+      if (!entry.client.isConnected()) {
+        const success = await this.reconnect(name)
+        if (success) {
+          reconnected.push(name)
+        }
+      }
+    }
+
+    return reconnected
+  }
+
+  // 获取所有 MCP 的连接状态
+  getHealthStatus(): Array<{ name: string; connected: boolean; priority: McpPriority; toolCount: number }> {
+    return [...this.entries.values()].map((entry) => ({
+      name: entry.name,
+      connected: entry.client.isConnected(),
+      priority: entry.priority,
+      toolCount: entry.tools.length,
+    }))
   }
 }
 

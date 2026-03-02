@@ -1,6 +1,8 @@
 // skill-loader Extension — Skill 系统加载器（§S9, 5.2.3）
 // 从 SKILL.md 加载 Skill 定义并注入上下文
 
+import { fileURLToPath } from 'node:url'
+
 import type { ExtensionFactory } from '../../types'
 
 // Skill 定义结构
@@ -91,7 +93,7 @@ export function createSkillLoaderDescriptor(
   return {
     name: 'skill-loader',
     source: 'builtin',
-    entryPoint: __filename,
+    entryPoint: fileURLToPath(import.meta.url),
     factory: createSkillLoaderExtension(callbacks),
   }
 }

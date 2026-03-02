@@ -1,5 +1,5 @@
 // Oracle — 战略顾问 Agent (只读, §S5.3)
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import { wrapAgent } from './agent-adapter'
 
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
@@ -40,7 +40,11 @@ export function createOracleAgent(
     maxToolTurns: options?.maxToolTurns ?? 30,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

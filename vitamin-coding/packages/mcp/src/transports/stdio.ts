@@ -32,16 +32,21 @@ export class StdioTransport implements McpTransport {
   private requestId = 0
   private readonly pendingRequests = new Map<
     number,
-    { resolve: (value: unknown) => void; reject: (reason: Error) => void }
+    { resolve: (value: unknown) => void; reject: (reason: Error) => void; timer?: ReturnType<typeof setTimeout> }
   >()
   private buffer = ''
   private connected = false
+  // 请求超时（毫秒），默认 30 秒
+  private readonly requestTimeoutMs: number
 
   constructor(
     private readonly command: string,
     private readonly args: string[] = [],
     private readonly env: Record<string, string> = {},
-  ) {}
+    requestTimeoutMs?: number,
+  ) {
+    this.requestTimeoutMs = requestTimeoutMs ?? 30_000
+  }
 
   async connect(): Promise<void> {
     const { spawn } = await import('node:child_process')
@@ -72,8 +77,9 @@ export class StdioTransport implements McpTransport {
     this.process.on('close', (code: number | null) => {
       logger.info(`MCP 进程退出: code=${String(code)}`)
       this.connected = false
-      // 拒绝所有待处理请求
+      // 拒绝所有待处理请求并清理定时器
       for (const [, pending] of this.pendingRequests) {
+        if (pending.timer) clearTimeout(pending.timer)
         pending.reject(new Error('MCP 进程已退出'))
       }
       this.pendingRequests.clear()
@@ -140,7 +146,16 @@ export class StdioTransport implements McpTransport {
     }
 
     return new Promise<unknown>((resolve, reject) => {
-      this.pendingRequests.set(id, { resolve, reject })
+      // 设置请求超时
+      const timer = setTimeout(() => {
+        const pending = this.pendingRequests.get(id)
+        if (pending) {
+          this.pendingRequests.delete(id)
+          pending.reject(new Error(`MCP 请求超时 (${this.requestTimeoutMs}ms): ${method}`))
+        }
+      }, this.requestTimeoutMs)
+
+      this.pendingRequests.set(id, { resolve, reject, timer })
       const json = JSON.stringify(request)
       this.process?.stdin?.write(`${json}\n`)
     })
@@ -160,6 +175,7 @@ export class StdioTransport implements McpTransport {
         if (response.id !== undefined) {
           const pending = this.pendingRequests.get(response.id)
           if (pending) {
+            if (pending.timer) clearTimeout(pending.timer)
             this.pendingRequests.delete(response.id)
             if (response.error) {
               pending.reject(new Error(response.error.message))

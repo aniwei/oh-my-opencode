@@ -1,6 +1,8 @@
 // tmux-manager Extension — Tmux 会话管理（§S9, 5.2.5）
 // 创建/管理/销毁 tmux session
 
+import { fileURLToPath } from 'node:url'
+
 import { z } from 'zod'
 
 import type { AgentTool, ToolResult } from '@vitamin/agent'
@@ -205,7 +207,7 @@ export function createTmuxManagerDescriptor(
   return {
     name: 'tmux-manager',
     source: 'builtin',
-    entryPoint: __filename,
+    entryPoint: fileURLToPath(import.meta.url),
     factory: createTmuxManagerExtension(callbacks),
   }
 }

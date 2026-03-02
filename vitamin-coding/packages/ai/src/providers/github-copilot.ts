@@ -60,10 +60,9 @@ function convertMessages(context: StreamContext): unknown[] {
               return {
                 type: 'image_url',
                 image_url: {
-                  url:
-                    part.source.type === 'base64'
-                      ? `data:${part.source.mediaType};base64,${part.source.data}`
-                      : part.source.data,
+                  url: part.source.type === 'base64'
+                    ? `data:${part.source.mediaType};base64,${part.source.data}`
+                    : part.source.data,
                 },
               }
             }

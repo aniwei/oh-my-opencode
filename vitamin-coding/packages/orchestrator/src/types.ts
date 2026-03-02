@@ -1,6 +1,6 @@
 // @vitamin/orchestrator 核心类型
 import type { AgentEventListener, AgentMessage, AgentTool } from '@vitamin/agent'
-import type { Model } from '@vitamin/ai'
+import type { Model, ProviderRegistry } from '@vitamin/ai'
 
 // ═══ Agent 注册 ═══
 
@@ -25,6 +25,8 @@ export interface AgentFactoryOptions {
   systemPrompt?: string
   eventListener?: AgentEventListener
   maxToolTurns?: number
+  providerRegistry?: ProviderRegistry
+  apiKey?: string
 }
 
 export interface AgentInstance {

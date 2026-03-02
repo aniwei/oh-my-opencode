@@ -11,14 +11,77 @@ import {
 } from '@vitamin/orchestrator'
 import { createSessionManager } from '@vitamin/session'
 import { createExtensionRunner } from '@vitamin/extension'
+import type { ExtensionFactory } from '@vitamin/extension'
 import { createMcpRegistry } from '@vitamin/mcp'
 import { createAgentSession } from '@vitamin/coding-agent'
+import type { VitaminConfig } from '@vitamin/config'
 
 import { createAgentStream } from './agent-stream'
 
-import type { VitaminAgent, VitaminAgentOptions, VitaminAgentState, ConversationHandle, AgentStream as IAgentStream } from './types'
+import type { Model } from '@vitamin/ai'
+import type {
+  VitaminAgent,
+  VitaminAgentOptions,
+  VitaminAgentState,
+  ConversationHandle,
+  AgentStream as IAgentStream,
+  ExternalToolDefinition,
+  AgentEventName,
+  AgentEventHandler,
+} from './types'
 
 const logger = createLogger('sdk:agent')
+
+function inferModelTransport(modelId: string): Pick<Model, 'api' | 'provider' | 'baseUrl'> {
+  if (modelId.startsWith('openai/')) {
+    return {
+      api: 'openai-responses',
+      provider: 'openai',
+      baseUrl: 'https://api.openai.com',
+    }
+  }
+
+  if (modelId.startsWith('google/')) {
+    return {
+      api: 'google-generative-ai',
+      provider: 'google',
+      baseUrl: 'https://generativelanguage.googleapis.com',
+    }
+  }
+
+  if (modelId.startsWith('github-copilot/')) {
+    return {
+      api: 'github-copilot',
+      provider: 'github-copilot',
+      baseUrl: 'https://api.githubcopilot.com',
+    }
+  }
+
+  return {
+    api: 'anthropic-messages',
+    provider: 'anthropic',
+    baseUrl: 'https://api.anthropic.com',
+  }
+}
+
+// 创建占位 Model（SDK 初始化阶段使用）
+function createPlaceholderModel(modelId?: string): Model {
+  const resolvedModelId = modelId ?? 'claude-sonnet'
+  const transport = inferModelTransport(resolvedModelId)
+
+  return {
+    id: resolvedModelId,
+    name: resolvedModelId,
+    api: transport.api,
+    provider: transport.provider,
+    baseUrl: transport.baseUrl,
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 200_000,
+    maxOutputTokens: 8192,
+  }
+}
 
 // 创建 VitaminAgent 实例（§S13.1 五步）
 export async function createVitaminAgent(options: VitaminAgentOptions): Promise<VitaminAgent> {
@@ -42,18 +105,7 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
     registry: agentRegistry,
     categoryResolver,
     backgroundManager,
-    resolveModel: (_reg) => ({
-      id: options.model ?? 'claude-sonnet',
-      name: options.model ?? 'claude-sonnet',
-      api: 'anthropic-messages',
-      provider: 'anthropic',
-      baseUrl: 'https://api.anthropic.com',
-      reasoning: false,
-      input: ['text'],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 200_000,
-      maxOutputTokens: 8192,
-    } as never),
+    resolveModel: (_reg) => createPlaceholderModel(options.model),
     resolveTools: (_reg) => toolRegistry.getAll(),
   })
 
@@ -67,7 +119,7 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
           name: `sdk-extension-${Math.random().toString(36).slice(2, 8)}`,
           source: 'local' as const,
           entryPoint: '',
-          factory: extFactory as never,
+          factory: extFactory as ExtensionFactory,
         })
       } catch (error) {
         logger.warn('Failed to load extension: %s', (error as Error).message)
@@ -76,7 +128,7 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
   }
 
   const subsystems = {
-    config: config as never,
+    config: config as VitaminConfig,
     toolRegistry,
     hookEngine,
     agentRegistry,
@@ -96,11 +148,12 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
   })
 
   let disposed = false
+  const eventListeners = new Map<string, Set<(...args: any[]) => void>>()
 
   // Step 5: 返回 VitaminAgent 实例
   const agent: VitaminAgent = {
     prompt(text: string): IAgentStream {
-      return createAgentStream(async (push, done) => {
+      return createAgentStream(async (push, done, _signal) => {
         push({ type: 'start' })
 
         const result = await session.prompt(text)
@@ -131,7 +184,7 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
             throw new Error('Conversation has ended')
           }
 
-          return createAgentStream(async (push, done) => {
+          return createAgentStream(async (push, done, _signal) => {
             push({ type: 'start' })
 
             const result = await session.prompt(text)
@@ -189,8 +242,39 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
     async dispose(): Promise<void> {
       if (disposed) return
       disposed = true
+      eventListeners.clear()
       await session.dispose()
       logger.info('VitaminAgent disposed')
+    },
+
+    registerTool(tool: ExternalToolDefinition): () => void {
+      const agentTool = {
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+        execute: async (args: Record<string, unknown>) => {
+          const result = await tool.execute(args)
+          return { content: result, isError: false }
+        },
+      }
+      toolRegistry.register(agentTool as any)
+      logger.info(`工具已注册: ${tool.name}`)
+
+      return () => {
+        toolRegistry.unregister(tool.name)
+        logger.info(`工具已注销: ${tool.name}`)
+      }
+    },
+
+    on<E extends AgentEventName>(event: E, handler: AgentEventHandler<E>): () => void {
+      if (!eventListeners.has(event)) {
+        eventListeners.set(event, new Set())
+      }
+      eventListeners.get(event)!.add(handler as any)
+
+      return () => {
+        eventListeners.get(event)?.delete(handler as any)
+      }
     },
   }
 

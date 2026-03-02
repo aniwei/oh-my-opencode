@@ -25,7 +25,45 @@ export interface VitaminAgent {
   abort(): void
   getState(): VitaminAgentState
   dispose(): Promise<void>
+  // 外部工具注册
+  registerTool(tool: ExternalToolDefinition): () => void
+  // 事件订阅
+  on<E extends AgentEventName>(event: E, handler: AgentEventHandler<E>): () => void
 }
+
+// 外部工具定义（SDK 消费者用）
+export interface ExternalToolDefinition {
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+  execute: (args: Record<string, unknown>) => Promise<string>
+}
+
+// Agent 事件类型
+export type AgentEventName =
+  | 'status_change'
+  | 'stream_start'
+  | 'stream_end'
+  | 'tool_call'
+  | 'tool_result'
+  | 'error'
+  | 'done'
+
+// 事件载荷映射
+export interface AgentEventPayloadMap {
+  status_change: { from: string; to: string }
+  stream_start: { model: string }
+  stream_end: { tokenUsage: { input: number; output: number } }
+  tool_call: { name: string; args: Record<string, unknown> }
+  tool_result: { name: string; result: string; isError: boolean }
+  error: { message: string; code?: string }
+  done: { messageCount: number }
+}
+
+// 事件处理器类型
+export type AgentEventHandler<E extends AgentEventName> = (
+  payload: AgentEventPayloadMap[E],
+) => void
 
 // Agent 状态
 export interface VitaminAgentState {

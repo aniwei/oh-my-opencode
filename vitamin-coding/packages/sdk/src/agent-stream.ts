@@ -4,7 +4,7 @@ import type { StreamEvent } from './types'
 
 // 创建 AgentStream
 export function createAgentStream(
-  executor: (push: (event: StreamEvent) => void, done: () => void) => Promise<AgentSessionResult>,
+  executor: (push: (event: StreamEvent) => void, done: () => void, signal: AbortSignal) => Promise<AgentSessionResult>,
 ): AgentStreamImpl {
   return new AgentStreamImpl(executor)
 }
@@ -19,7 +19,7 @@ export class AgentStreamImpl {
   private abortController = new AbortController()
 
   constructor(
-    executor: (push: (event: StreamEvent) => void, done: () => void) => Promise<AgentSessionResult>,
+    executor: (push: (event: StreamEvent) => void, done: () => void, signal: AbortSignal) => Promise<AgentSessionResult>,
   ) {
     this.resultPromise = new Promise<AgentSessionResult>((resolve, reject) => {
       this.resultResolve = resolve
@@ -34,7 +34,7 @@ export class AgentStreamImpl {
   }
 
   private async run(
-    executor: (push: (event: StreamEvent) => void, done: () => void) => Promise<AgentSessionResult>,
+    executor: (push: (event: StreamEvent) => void, done: () => void, signal: AbortSignal) => Promise<AgentSessionResult>,
   ): Promise<void> {
     try {
       const result = await executor(
@@ -52,6 +52,8 @@ export class AgentStreamImpl {
         () => {
           this.finish()
         },
+        // signal — 传递给 executor 以支持下游取消
+        this.abortController.signal,
       )
       this.resultResolve(result)
       this.finish()
@@ -77,7 +79,7 @@ export class AgentStreamImpl {
 
     // 通知所有等待的消费者
     for (const resolver of this.pendingResolvers) {
-      resolver({ value: undefined as never, done: true })
+      resolver({ value: undefined, done: true } as IteratorResult<StreamEvent>)
     }
     this.pendingResolvers = []
   }
@@ -94,7 +96,7 @@ export class AgentStreamImpl {
 
         // 已结束
         if (this.finished) {
-          return { value: undefined as never, done: true }
+          return { value: undefined, done: true } as IteratorResult<StreamEvent>
         }
 
         // 等待新事件

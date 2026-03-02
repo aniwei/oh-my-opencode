@@ -7,9 +7,13 @@ import type { HookRegistration, HookTiming } from '@vitamin/hooks'
 import type { ExtensionEventBus } from './event-bus'
 import type {
   ExtensionAPI,
+  ExtensionAgentContext,
+  ExtensionConfigContext,
   ExtensionDescriptor,
   ExtensionEventHandler,
   ExtensionEventName,
+  ExtensionUIContext,
+  McpRegistration,
   SlashCommand,
 } from './types'
 
@@ -20,12 +24,17 @@ export interface ExtensionRegistry {
   tools: Map<string, AgentTool>
   commands: Map<string, SlashCommand>
   hooks: HookRegistration[]
+  mcps: Map<string, McpRegistration>
+  shortcuts: Map<string, () => void | Promise<void>>
 }
 
 // API 构建器配置
 export interface ApiBuilderConfig {
   eventBus: ExtensionEventBus
   registry: ExtensionRegistry
+  ui?: ExtensionUIContext
+  config?: ExtensionConfigContext
+  agent?: ExtensionAgentContext
 }
 
 // 为单个 Extension 构建隔离的 API 实例
@@ -116,6 +125,51 @@ export function buildExtensionApi(
       disposers.push(unsubscribe)
       return unsubscribe
     },
+
+    registerMcp(mcpConfig: McpRegistration): () => void {
+      const mcpName = mcpConfig.name
+      registry.mcps.set(mcpName, mcpConfig)
+      const dispose = () => {
+        registry.mcps.delete(mcpName)
+      }
+      disposers.push(dispose)
+      logger.info(`Extension ${extName} 注册 MCP: ${mcpName}`)
+      return dispose
+    },
+
+    registerShortcut(key: string, handler: () => void | Promise<void>): () => void {
+      const shortcutKey = `ext:${extName}:${key}`
+      registry.shortcuts.set(shortcutKey, handler)
+      const dispose = () => {
+        registry.shortcuts.delete(shortcutKey)
+      }
+      disposers.push(dispose)
+      return dispose
+    },
+
+    // 上下文 — 允许外部注入，提供默认的 no-op 回退
+    ui: config.ui ?? {
+      select: async () => undefined,
+      confirm: async () => false,
+      input: async () => undefined,
+      notify: () => {},
+      setStatus: () => {},
+    },
+
+    config: config.config ?? {
+      get: () => undefined,
+      set: async () => {},
+      getAll: () => ({}),
+    },
+
+    agent: config.agent ?? {
+      setModel: () => {},
+      getModel: () => 'unknown',
+      setThinkingLevel: () => {},
+      setActiveTools: () => {},
+      sendMessage: async () => {},
+      exec: async () => '',
+    },
   }
 
   // dispose 清理函数 — 移除该 Extension 注册的所有资源
@@ -139,5 +193,7 @@ export function createExtensionRegistry(): ExtensionRegistry {
     tools: new Map(),
     commands: new Map(),
     hooks: [],
+    mcps: new Map(),
+    shortcuts: new Map(),
   }
 }

@@ -1,6 +1,7 @@
 // 基于 pino 的结构化日志
 // JSON Lines 输出到 /tmp/vitamin.log，控制台输出优先使用 pino-pretty（可选）
 import { createRequire } from 'node:module'
+import { PassThrough } from 'node:stream'
 import pino from 'pino'
 
 const LOG_FILE = '/tmp/vitamin.log'
@@ -44,16 +45,33 @@ function createTransportTargets(): pino.TransportTargetOptions[] {
   return targets
 }
 
-// 根日志器，同时写入文件（JSON）和控制台（美化格式）
+const logPassThrough = new PassThrough()
+let globalLogListener: ((log: any) => void) | undefined = undefined
+
+logPassThrough.on('data', (chunk) => {
+  if (globalLogListener) {
+    try {
+      globalLogListener(JSON.parse(chunk.toString()))
+    } catch {
+      // ignore
+    }
+  }
+})
+
+export function attachLogListener(cb: (log: any) => void) {
+  globalLogListener = cb
+}
+
+// 根日志器，同时写入文件（JSON）、控制台（美化格式）以及内存监听器
 const rootLogger = pino(
   { level: DEFAULT_LEVEL },
-  pino.transport({
-    targets: createTransportTargets(),
-  }),
+  pino.multistream([
+    { level: DEFAULT_LEVEL as pino.Level, stream: logPassThrough },
+    { level: DEFAULT_LEVEL as pino.Level, stream: pino.transport({ targets: createTransportTargets() }) }
+  ])
 )
 
 // 创建带有命名上下文的子日志器
-// 用法：const log = createLogger('ai:stream')
 export function createLogger(name: string): pino.Logger {
   return rootLogger.child({ name })
 }

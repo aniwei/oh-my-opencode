@@ -116,18 +116,14 @@ function validateConfig(
   config: Partial<VitaminConfig>,
   warnings: ConfigWarning[],
 ): Partial<VitaminConfig> {
-  // 检测未知字段并产生警告
-  const strictResult = VitaminConfigStrictSchema.safeParse(config)
-  if (strictResult.success) {
-    // 严格模式通过，检查是否有超出已知 schema 的字段
-    const knownKeys = new Set(Object.keys(VitaminConfigStrictSchema.shape))
-    for (const key of Object.keys(config)) {
-      if (!knownKeys.has(key)) {
-        warnings.push({
-          key,
-          message: `Unknown config field: "${key}"`,
-        })
-      }
+  // 检测未知字段并产生警告（无条件检查，不依赖 strict parse 结果）
+  const knownKeys = new Set(Object.keys(VitaminConfigStrictSchema.shape))
+  for (const key of Object.keys(config)) {
+    if (!knownKeys.has(key)) {
+      warnings.push({
+        key,
+        message: `Unknown config field: "${key}"`,
+      })
     }
   }
 

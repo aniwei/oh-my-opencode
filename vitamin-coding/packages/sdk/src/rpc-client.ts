@@ -7,7 +7,18 @@ import { createAgentStream } from './agent-stream'
 
 import type { Socket } from 'node:net'
 import type { AgentSessionResult } from '@vitamin/coding-agent'
-import type { RPCClientOptions, RPCRequest, RPCResponse, VitaminAgent, VitaminAgentState, ConversationHandle, AgentStream } from './types'
+import type {
+  RPCClientOptions,
+  RPCRequest,
+  RPCResponse,
+  VitaminAgent,
+  VitaminAgentState,
+  ConversationHandle,
+  AgentStream,
+  ExternalToolDefinition,
+  AgentEventName,
+  AgentEventHandler,
+} from './types'
 
 const logger = createLogger('sdk:rpc-client')
 
@@ -21,6 +32,14 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
   }>()
 
   let buffer = ''
+
+  // 缓存的 Agent 状态（通过 RPC 事件或 prompt 结果更新）
+  let cachedState: VitaminAgentState = {
+    model: 'unknown',
+    isRunning: false,
+    messageCount: 0,
+    totalTokens: { input: 0, output: 0 },
+  }
 
   function handleData(data: Buffer): void {
     buffer += data.toString()
@@ -72,9 +91,14 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
 
   const agent: VitaminAgent = {
     prompt(text: string): AgentStream {
-      return createAgentStream(async (push, done) => {
+      return createAgentStream(async (push, done, _signal) => {
+        cachedState.isRunning = true
         push({ type: 'start' })
         const result = await send('prompt', { text }) as AgentSessionResult
+        cachedState.isRunning = false
+        cachedState.messageCount++
+        cachedState.totalTokens.input += result.tokens.input
+        cachedState.totalTokens.output += result.tokens.output
         push({ type: 'done', result })
         done()
         return result
@@ -91,7 +115,7 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
             throw new Error('Conversation has ended')
           }
 
-          return createAgentStream(async (push, done) => {
+          return createAgentStream(async (push, done, _signal) => {
             push({ type: 'start' })
             const result = await send('prompt', { text }) as AgentSessionResult
             history.push(result)
@@ -128,13 +152,7 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
     },
 
     getState(): VitaminAgentState {
-      // 同步接口;; RPC 是异步的 — 返回缓存状态（暂用占位）
-      return {
-        model: 'unknown',
-        isRunning: false,
-        messageCount: 0,
-        totalTokens: { input: 0, output: 0 },
-      }
+      return { ...cachedState }
     },
 
     async dispose(): Promise<void> {
@@ -143,6 +161,15 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
       } finally {
         socket?.destroy()
         socket = null
+      }
+    },
+
+    registerTool(_tool: ExternalToolDefinition): () => void {
+      throw new Error('registerTool is not supported by RPC client yet')
+    },
+
+    on<E extends AgentEventName>(_event: E, _handler: AgentEventHandler<E>): () => void {
+      return () => {
       }
     },
   }

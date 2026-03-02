@@ -1,6 +1,8 @@
 // plan-mode Extension — Plan/Build 模式（§S9, 5.2.2）
 // 注册 /plan 和 /start-work 斜杠命令
 
+import { fileURLToPath } from 'node:url'
+
 import type { ExtensionFactory } from '../../types'
 
 // plan-mode 外部依赖回调接口
@@ -79,7 +81,7 @@ export function createPlanModeDescriptor(
   return {
     name: 'plan-mode',
     source: 'builtin',
-    entryPoint: __filename,
+    entryPoint: fileURLToPath(import.meta.url),
     factory: createPlanModeExtension(callbacks),
   }
 }

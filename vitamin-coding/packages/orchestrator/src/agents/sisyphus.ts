@@ -1,6 +1,6 @@
 // Sisyphus — 主编排器 Agent (§S7.7 四阶段工作流)
 // Phase 1: Intent Gate → Phase 2: Codebase Assessment → Phase 3: Explore/Implement → Phase 4: Completion
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import { wrapAgent } from './agent-adapter'
 
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
@@ -40,7 +40,11 @@ export function createSisyphusAgent(
     maxToolTurns: options?.maxToolTurns ?? 50,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

@@ -19,6 +19,7 @@ export {
 // 传输层
 export { StdioTransport, createStdioTransport } from './transports/stdio'
 export { HttpTransport, createHttpTransport } from './transports/http'
+export { SseTransport, createSseTransport } from './transports/sse'
 
 // 内置 MCP
 export { getBuiltinMcpConfigs } from './builtin/websearch'

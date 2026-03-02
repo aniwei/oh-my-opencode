@@ -1,5 +1,5 @@
 // Explore — 代码库搜索 Agent (只读, §S5.3)
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
 import type { Model } from '@vitamin/ai'
 
@@ -38,7 +38,11 @@ export function createExploreAgent(
     maxToolTurns: options?.maxToolTurns ?? 30,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

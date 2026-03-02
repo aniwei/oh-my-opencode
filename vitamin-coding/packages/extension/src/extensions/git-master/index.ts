@@ -1,6 +1,8 @@
 // git-master Extension — Git 高级操作（§S9, 5.2.4）
 // 提供 commit/push/branch/status 等 git 操作工具
 
+import { fileURLToPath } from 'node:url'
+
 import { z } from 'zod'
 
 import type { AgentTool, ToolResult } from '@vitamin/agent'
@@ -153,7 +155,7 @@ export function createGitMasterDescriptor(
   return {
     name: 'git-master',
     source: 'builtin',
-    entryPoint: __filename,
+    entryPoint: fileURLToPath(import.meta.url),
     factory: createGitMasterExtension(callbacks),
   }
 }

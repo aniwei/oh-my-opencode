@@ -1,8 +1,9 @@
 # vitamin-coding-agent 开发计划
 
-> 版本：v1.1 | 日期：2026-02-28  
-> 基于技术方案 Part 2（架构）、Part 3（包设计）、Part 7（路线图）制定  
-> 总工期：15 周（理想） / 19 周（保守）  
+> 版本：v1.4 | 日期：2026-03-02  
+> 基于技术方案 Part 2（架构）、Part 3（包设计）、Part 7（路线图）、Part 9（云端部署）、Part 10（试验性特性）、Part 12（Web UI）制定  
+> 总工期：49 周（理想） / 56 周（保守）  
+> 其中 Phase 0-5 为 v0.1.0 核心交付（15 周），Phase 6-7 为 v0.2.0 试验性迭代（18 周），Phase 8 为 v0.3.0 云端部署（8 周），Phase 9 为 v0.4.0 Web UI（8 周）  
 > 验收标准按模块粒度定义，每个模块包含功能、质量、文档三类门槛
 >
 > **配套文档**：[DEVELOPMENT-SPEC.md](DEVELOPMENT-SPEC.md) — 实现规范（类型签名、状态机、算法伪码、错误处理模式）  
@@ -19,8 +20,14 @@
 - [Phase 3：会话 + 扩展（Week 9-11 前半）](#phase-3会话--扩展week-9-11-前半)
 - [Phase 4：TUI + CLI（Week 11-13）](#phase-4tui--cliweek-11-13)
 - [Phase 5：Plan/Build + 高级功能（Week 14-15）](#phase-5planbuild--高级功能week-14-15)
+- [Phase 6：试验性特性 — 开发者工具与调试（Week 16-25）](#phase-6试验性特性--开发者工具与调试week-16-25)
+- [Phase 7：试验性特性 — 自主编排与反馈（Week 26-33）](#phase-7试验性特性--自主编排与反馈week-26-33)
+- [Phase 8：云端部署 — 存储抽象与沙箱（Week 34-41）](#phase-8云端部署--存储抽象与沙箱week-34-41)
+- [Phase 9：Web UI — 浏览器端交互界面（Week 42-49）](#phase-9web-ui--浏览器端交互界面week-42-49)
 - [里程碑与交付物](#里程碑与交付物)
 - [风险登记簿](#风险登记簿)
+- [排除范围（v0.4.0 不包含）](#排除范围v040-不包含)
+- [附录：模块依赖快查表](#附录模块依赖快查表)
 
 ---
 
@@ -211,7 +218,7 @@ Layer 7 (SDK层)     ▼
 | `utils/event-stream.ts` | `EventStream<E, R>` 异步迭代器（for await + .result()） |
 | `model-registry.ts` | 模型注册表 + 静态模型数据库 |
 | `providers/anthropic-messages.ts` | Anthropic Messages API 适配器（流式 + thinking） |
-| `providers/openai-completions.ts` | OpenAI Chat Completions 适配器 |
+| `providers/openai-completions.ts` | OpenAI Chat Completions 适配器（同时作为 OpenAI-compatible 通用适配器，支持 xAI / Groq / OpenRouter 等兼容服务） |
 | `providers/openai-responses.ts` | OpenAI Responses API 适配器 |
 | `utils/http-client.ts` | HTTP 客户端封装（代理 + 超时 + 重试） |
 
@@ -229,6 +236,24 @@ Layer 7 (SDK层)     ▼
 | `cost-calculator.ts` | 费用精算（input/output/cache_read/cache_write） |
 | `fallback-chain.ts` | Provider fallback 引擎（同提供商重试 + 跨提供商降级） |
 | `api-key-resolver.ts` | 多策略 Key 解析（env + OAuth + 动态刷新） |
+
+#### 1.1A 对标 OpenCode 的 Provider 专项（并行设计流）
+
+> **设计文档**：[13-model-provider-opencode-alignment.md](13-model-provider-opencode-alignment.md)
+> **实现规范锚点**：[DEVELOPMENT-SPEC.md §S3.7-S3.9](DEVELOPMENT-SPEC.md#s37-provider-runtime-view三层合并模型)
+
+| 任务 | 说明 |
+|------|------|
+| Provider Runtime View | 引入 catalog/config/auth 三层合并视图（内部实现） |
+| Auth/Config 解耦 | `install`/`doctor` 只管凭据，provider 行为配置留在配置文件 |
+| Copilot 专项语义 | `github-copilot` transport + token 优先级 + 401/403 认证提示 |
+| 可诊断性增强 | provider/model not found 返回候选建议（fuzzy suggestions） |
+
+**阶段验收（专项）**：
+
+- P1：`github-copilot/...` 在 `coding-agent`/`sdk` 占位模型推导正确。
+- P2：`api-key-resolver` 输出 `{ token, source }` 并保留 env 最高优先级。
+- P3：Provider/Model 查找失败返回建议列表，错误信息可直接指导修复。
 
 **实现约束**（详见 [DEVELOPMENT-SPEC.md §S3](DEVELOPMENT-SPEC.md#s3-vitaminai-实现规范)）：
 
@@ -259,6 +284,7 @@ Layer 7 (SDK层)     ▼
 | 1.1.11 | 模型注册表含 ≥ 15 个模型定义 | 单测：registry.getAll().length >= 15 |
 | 1.1.12 | 所有 Provider 适配器实现统一 `ProviderAdapter` 接口 | TypeScript 编译通过 + 每个适配器有独立单测 |
 | 1.1.13 | 单测覆盖率 ≥ 80%（不含集成测试） | `vitest run --coverage` |
+| 1.1.14 | 完成 OpenCode 对标 Provider 技术设计并挂接计划 | 文档存在 + README 索引 + 本章节专项任务存在 |
 
 ---
 
@@ -683,6 +709,8 @@ Layer 7 (SDK层)     ▼
 ### 4.1 `@vitamin/tui` — 终端 UI 框架
 
 > **实现规范**：[DEVELOPMENT-SPEC.md §S11](DEVELOPMENT-SPEC.md#s11-vitamintui-实现规范)
+>  
+> **对标专题**：[14-tui-opencode-alignment.md](14-tui-opencode-alignment.md)
 
 | 项目 | 说明 |
 |------|------|
@@ -716,6 +744,15 @@ Layer 7 (SDK层)     ▼
 | `utils/measure.ts` | 字符宽度测量 |
 | `utils/ansi.ts` | ANSI 颜色/样式工具 |
 
+#### 4.1A 对标 OpenCode 的 TUI 专项（并行实现流）
+
+> 实现规范锚点：[DEVELOPMENT-SPEC.md §S11.3](DEVELOPMENT-SPEC.md#s113-tui-事件循环与输入规范opencode-对齐点)
+
+- 打通 terminal 生命周期：`startListening()` / `stopListening()` 与 raw mode 配对。  
+- 建立语义键分发链：`sequenceToKeyId` → `keyBindings.handle` → 页面输入处理。  
+- 统一 Enter/Shift+Tab 键语义，保证页面切换与设置编辑可触达。  
+- resize 时同步 renderer 与页面宽度，避免切页后布局异常。
+
 **验收标准**：
 
 | # | 标准 | 验证方式 |
@@ -730,6 +767,7 @@ Layer 7 (SDK层)     ▼
 | 4.1.8 | 终端尺寸变更触发重绘 | 单测：mock resize event → renderer 重新调用 |
 | 4.1.9 | 主题热重载 | 单测：更新 theme 配置 → 组件颜色立即变更 |
 | 4.1.10 | 单测覆盖率 ≥ 75% | `vitest run --coverage`（UI 组件覆盖率标准略低） |
+| 4.1.11 | TUI 输入监听生命周期完整（启动/退出） | 单测：interactive start 调用监听，cleanup 停止监听 |
 
 ---
 
@@ -776,6 +814,14 @@ Layer 7 (SDK层)     ▼
 | `commands/install.ts` | `vitamin install` 交互式设置 |
 | `commands/config.ts` | `vitamin config` 配置管理 |
 
+#### 4.2A `coding-agent` 接入 TUI 专项（并行实现流）
+
+> 实现规范锚点：[DEVELOPMENT-SPEC.md §S12.4](DEVELOPMENT-SPEC.md#s124-interactive-模式与-tui-接入契约)
+
+- interactive 模式优先走全局快捷键（Ctrl+C/Ctrl+D/Ctrl+L/Tab/Shift+Tab）。  
+- 全局快捷键未命中时回落到当前页面输入处理。  
+- 会话页与设置页统一支持 `enter` 触发动作。
+
 **验收标准**：
 
 | # | 标准 | 验证方式 |
@@ -791,6 +837,7 @@ Layer 7 (SDK层)     ▼
 | 4.2.9 | `vitamin install` 引导设置 API Key | E2E：交互式输入 → 写入配置文件 |
 | 4.2.10 | 启动到可输入 < 2s（冷启动） | 性能测试：`time vitamin --print "hello"` |
 | 4.2.11 | 系统提示含项目上下文（AGENTS.md 内容） | 单测：项目下有 AGENTS.md → 系统提示包含其内容 |
+| 4.2.12 | 全局快捷键与页面输入链路按优先级执行 | 单测：快捷键命中则页面不消费；未命中回落页面 |
 
 ---
 
@@ -981,6 +1028,887 @@ Layer 7 (SDK层)     ▼
 
 ---
 
+## Phase 6：试验性特性 — 开发者工具与调试（Week 16-25）
+
+> **来源**：技术方案 Part 10（10.1-10.4, 10.8, 10.10）+ 分册 A/C  
+> **前置条件**：Phase 5 / v0.1.0 已发布  
+> **目标**：开发者调试工具链（Inspector + 断点）、圆桌脑暴引擎、性能基准体系  
+> **新增包**：`@vitamin/server`（14 号包）
+
+### 6.1 @vitamin/server — HTTP/WebSocket 服务基座（新包）
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 16-17（8 天） |
+| **依赖** | Phase 5 完成（v0.1.0 已发布） |
+| **来源** | 10.2 实时日志推送系统 + 10.3 DevTools Inspector（后端部分） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/server/src/http-server.ts` | HTTP 服务启动/关闭、端口管理、CORS |
+| `packages/server/src/websocket-hub.ts` | WebSocket 连接管理、房间隔离 |
+| `packages/server/src/log-broadcast-hub.ts` | `LogBroadcastHub` — 日志广播（SSE + WebSocket 双通道） |
+| `packages/server/src/api/sessions.ts` | Session 列表 / 详情 API |
+| `packages/server/src/api/agents.ts` | Agent 状态 / 消息流 API |
+| `packages/server/src/api/logs.ts` | 日志查询 + 回放 API |
+| `packages/server/src/middleware/` | 认证中间件（Bearer token）、请求限速 |
+
+**实现约束**：
+
+- **`--inspect` 启动模式**（强制）：Server 仅在 `--inspect` 或 `--inspect=<port>` 标志下启动，默认端口 `9229`（致敬 Node.js）
+- **零生产开销**（强制）：未启用 `--inspect` 时，`LogBroadcastHub.publish()` 为 no-op，无 socket 绑定
+- **SSE 日志推送格式**：`event: log\ndata: { level, source, timestamp, payload }\n\n`（与 10.2.3 一致）
+- **日志回放 API**：`GET /api/logs?session={id}&since={ts}` 支持增量拉取
+- **连接生命周期**：WebSocket 心跳 30s，断线自动清理，日志 buffer 上限 10K 条
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 6.1.1 | `--inspect` 启动 HTTP + WebSocket 服务 | 集成测试：启动 → `curl http://localhost:9229/api/sessions` 返回 200 |
+| 6.1.2 | SSE 日志推送实时可用 | 集成测试：订阅 `/api/logs/stream` → Agent 执行 → 收到日志事件 |
+| 6.1.3 | WebSocket 连接管理正常 | 单测：连接 → 心跳 → 主动断开 → 服务端清理 |
+| 6.1.4 | 未启用 `--inspect` 时零开销 | 单测：不传 flag → `LogBroadcastHub.publish()` no-op → 无端口绑定 |
+| 6.1.5 | 日志吞吐量 > 10K events/s（P95） | 性能测试：批量 publish + subscribe 基准 |
+| 6.1.6 | 日志回放 API 支持增量拉取 | 单测：写入 100 条 → `since=50` → 返回后 50 条 |
+
+---
+
+### 6.2 DevTools Inspector 前端
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 18-20（10 天） |
+| **依赖** | 6.1 @vitamin/server |
+| **来源** | 10.3 DevTools Inspector（前端 6 面板） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/server/inspector/session-explorer.tsx` | 会话树浏览器（树形展开、搜索过滤） |
+| `packages/server/inspector/agent-monitor.tsx` | Agent 状态实时面板（状态机 + 消息计数 + 工具调用追踪） |
+| `packages/server/inspector/message-inspector.tsx` | 消息详情查看器（system/user/assistant/tool 四色高亮） |
+| `packages/server/inspector/thinking-log.tsx` | Thinking Block 实时流查看器 |
+| `packages/server/inspector/tools-timeline.tsx` | 工具调用时间线（甘特图样式） |
+| `packages/server/inspector/logs-console.tsx` | 日志控制台（级别过滤 + 全文搜索 + 自动滚动） |
+| `packages/server/inspector/app.tsx` | Inspector 主框架（标签页布局 + 路由） |
+
+**实现约束**：
+
+- **前端技术栈**：React + Vite，构建产物内嵌到 `@vitamin/server` 包（`dist/inspector/`），由 HTTP 服务静态托管
+- **6 面板架构**（10.3.3）：Session Explorer / Agent Monitor / Message Inspector / Thinking Log / Tools Timeline / Logs Console
+- **实时数据流**：Agent Monitor + Logs Console 通过 SSE 订阅实时更新；Message Inspector 支持历史消息回放
+- **零外部依赖运行**：`http://localhost:9229` 即可访问完整 Inspector，无需安装浏览器扩展
+- **响应时间**：Inspector API 响应 < 50ms（P95）
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 6.2.1 | `--inspect` 启动后浏览器可访问 Inspector 页面 | `http://localhost:9229` 返回完整 SPA |
+| 6.2.2 | Session Explorer 展示会话树结构 | 手动测试：创建会话 + fork → 树正确展示 |
+| 6.2.3 | Agent Monitor 实时展示 Agent 状态变化 | 手动测试：Agent 执行中 → 页面实时更新状态标签 |
+| 6.2.4 | Message Inspector 四色消息高亮 | 手动测试：查看历史消息 → system/user/assistant/tool 颜色区分 |
+| 6.2.5 | Tools Timeline 甘特图展示工具调用 | 手动测试：多工具调用 → 时间线正确展示并行/串行关系 |
+| 6.2.6 | Logs Console 支持级别过滤和搜索 | 手动测试：输入关键词 → 过滤结果正确 |
+
+---
+
+### 6.3 三模式编排：圆桌脑暴引擎
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 18-20（11 天，与 6.2 并行） |
+| **依赖** | Phase 2 orchestrator + Phase 5 Plan/Build |
+| **来源** | 10.1 三模式编排：圆桌脑暴 / Plan / Build |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `roundtable/roundtable-session.ts` | `RoundtableSession` — 讨论会话管理（参与者注册、发言轮次、协议达成） |
+| `roundtable/roundtable-participants.ts` | 默认参与者定义（Architect / Devil's Advocate / Pragmatist / User Proxy） |
+| `roundtable/roundtable-protocol.ts` | 讨论协议（3 轮默认、共识检测、早期中断） |
+| `roundtable/intent-detector.ts` | 三模式意图检测（圆桌关键词 / Plan 关键词 / 直接执行） |
+| `roundtable/roundtable-to-plan.ts` | 圆桌结论 → Plan 输入转换器 |
+| `commands/roundtable.ts` | `/roundtable` 命令注册 |
+| `extensions/roundtable-mode/` | 圆桌模式 Extension（可禁用） |
+
+**实现约束**：
+
+- **Extension 形态**（强制）：圆桌模式作为内置 Extension 实现（ADR-012），禁用后 Plan/Build 完全不受影响
+- **默认参与者**（10.1.3）：4 个角色（Architect / Devil's Advocate / Pragmatist / User Proxy），可配置追加自定义角色
+- **Token 预算**：3 轮 × 4 角色 ≈ 15K token，提供早期中断（共识达成时提前结束）
+- **共识检测**（10.1.4）：每轮结束后评估共识度 ≥ 80% 即终止，否则进入下一轮
+- **模式切换**：圆桌结论自动转换为 Plan 输入（`roundtable-to-plan.ts`），支持"圆桌→Plan→Build"完整链路
+- **意图检测**：关键词匹配 + LLM 兜底（"讨论一下"/"头脑风暴"/"需要不同角度" → 圆桌；"规划"/"制定方案" → Plan；其他 → Build）
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 6.3.1 | `/roundtable` 触发圆桌讨论 | E2E：`/roundtable "选择数据库方案"` → 多角色讨论输出 |
+| 6.3.2 | 4 个默认角色各自发言内容有差异性 | 集成测试：3 轮讨论 → 各角色立场可区分 |
+| 6.3.3 | 共识达成后提前终止 | 单测：mock 共识度 90% → 第 2 轮即终止 |
+| 6.3.4 | Token 消耗在预算内 | 单测：3 轮 × 4 角色 → 总 token < 20K |
+| 6.3.5 | 圆桌结论可转换为 Plan 输入 | 单测：圆桌输出 → `roundtable-to-plan` → 有效 Plan 输入结构 |
+| 6.3.6 | 圆桌 Extension 禁用后 Plan/Build 不受影响 | 单测：`disabled_extensions: ["roundtable-mode"]` → Plan 正常工作 |
+| 6.3.7 | 意图检测正确路由三种模式 | 单测：10 条输入 → 正确分类到圆桌/Plan/Build |
+
+---
+
+### 6.4 Agent 断点与步进调试
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 21-23（12 天） |
+| **依赖** | 6.1 @vitamin/server + 6.2 Inspector（Agent Monitor 面板） |
+| **来源** | 10.4 Agent 断点与步进调试（分册 A） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `breakpoint/breakpoint-engine.ts` | `BreakpointEngine` — 断点注册、匹配、挂起/恢复管理 |
+| `breakpoint/breakpoint-types.ts` | 6 种断点类型定义（turn / tool / agent / message / condition / error） |
+| `breakpoint/checkpoint-injector.ts` | 7 个检查点注入位置（Agent 循环入口/出口、工具执行前/后等） |
+| `breakpoint/resume-actions.ts` | 4 种恢复策略（continue / skip_tool / modify_and_continue / abort） |
+| `breakpoint/pending-pause.ts` | `PendingPause` — Promise 挂起状态管理（支持多 Agent 并行暂停） |
+| `server/api/breakpoints.ts` | 断点 CRUD REST API（Inspector 面板调用） |
+| `server/ws/breakpoint-events.ts` | WebSocket 断点事件推送（paused / resumed / hit） |
+
+**实现约束**：
+
+- **Promise 挂起模式**（ADR-014）：`await checkpoint()` 自然暂停异步流程，无需异常机制，恢复时 `resolve()` 继续执行
+- **无断点时零开销**：`checkpoint()` 仅遍历 `Map<id, Breakpoint>` 做条件匹配，P95 < 0.1ms
+- **6 种断点类型**（10.4.3）：
+  - `turn` — Agent 循环每轮前/后暂停
+  - `tool` — 特定工具调用前/后（支持工具名通配符）
+  - `agent` — 特定 Agent 启动/退出时
+  - `message` — 消息内容匹配（正则）
+  - `condition` — 自定义条件表达式（`turnCount > 5 && toolName === "bash"`）
+  - `error` — 错误发生时自动暂停
+- **7 个检查点注入位置**（10.4.5）：Agent 循环入口 / LLM 调用前 / LLM 返回后 / 工具调用前 / 工具返回后 / 消息追加后 / Agent 循环出口
+- **Inspector 集成**：暂停时 Agent Monitor 面板高亮显示暂停位置 + 上下文变量；恢复操作通过 Inspector 面板或 WebSocket 命令触发
+- **并发支持**：`Map<agentId, PendingPause>` 支持多 Agent 同时命中断点并行暂停
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 6.4.1 | 6 种断点类型均可正确触发暂停 | 单测：逐一设置各类型断点 → Agent 执行 → 暂停在正确位置 |
+| 6.4.2 | 4 种恢复策略工作正常 | 单测：暂停后分别执行 continue/skip/modify/abort → 行为正确 |
+| 6.4.3 | 无断点时 checkpoint() 延迟 < 0.1ms（P95） | 性能测试：循环调用 10K 次 → 统计 P95 |
+| 6.4.4 | Inspector 面板可设置/删除断点 | 集成测试：通过 REST API 增删断点 → 生效 |
+| 6.4.5 | 多 Agent 并行暂停 | 单测：3 个 Agent 同时命中断点 → `pendingPauses.size === 3` |
+| 6.4.6 | WebSocket 实时推送断点事件 | 集成测试：订阅 ws → 命中断点 → 收到 `paused` 事件 |
+| 6.4.7 | condition 断点支持复合表达式 | 单测：`turnCount > 3 && agentId === "oracle"` → 第 4 轮 Oracle 暂停 |
+
+---
+
+### 6.5 性能基准 + 错误路径强化
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 24-25（8 天） |
+| **依赖** | Phase 5 + 6.1（Inspector 性能指标采集） |
+| **来源** | 10.8 性能基准指标 + 10.10 核心流程错误与重试路径 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `benchmarks/checkpoint-bench.ts` | checkpoint() 无断点/有断点延迟基准 |
+| `benchmarks/log-hub-bench.ts` | LogBroadcastHub 吞吐量基准 |
+| `benchmarks/inspector-api-bench.ts` | Inspector API 响应时间基准 |
+| `benchmarks/escalation-bench.ts` | Escalation 路由延迟基准（为 Phase 7 预备） |
+| `packages/ai/src/retry/llm-retry-policy.ts` | LLM API 调用重试策略（指数退避 + Retry-After + fallback chain） |
+| `packages/ai/src/retry/retryable-errors.ts` | 可重试/不可重试错误分类（429/5xx/网络 vs 401/402/内容策略） |
+| `packages/agent/src/error/agent-loop-recovery.ts` | Agent 循环异常退出善后（状态保存 + interrupted 标记 + `/resume` 命令） |
+| `packages/tools/src/error/tool-timeout-handler.ts` | 工具执行超时处理（AbortSignal + 超时结果注入上下文） |
+
+**实现约束**：
+
+- **CI 回归测试**（强制）：性能基准纳入 CI（`vitest bench`），每个 PR 自动对比，回归 > 20% 阻断合并
+- **P95 目标值**（10.8）：
+  - `checkpoint()` 无断点 < 0.1ms
+  - `checkpoint()` 10 个断点 < 1ms
+  - Inspector API 响应 < 50ms
+  - LogBroadcastHub 吞吐 > 10K events/s
+- **LLM 重试策略**（10.10.1）：`maxRetries: 3`，指数退避（initial 1s, max 30s），429 使用 `Retry-After` header，超限后尝试 fallback 模型
+- **不可重试错误立即失败**：401（invalid key）、402（insufficient quota）、400（content filter / context too long）
+- **Agent 循环善后**（10.10.3）：子 Agent 异常 → 向父返回 `TaskResult { status: "failed" }` → 父决策重试/跳过/上报；主 Agent 异常 → 状态标记 `interrupted` + 提示 `/resume`
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 6.5.1 | 性能基准测试全部通过 P95 目标 | `vitest bench` 输出全部绿色 |
+| 6.5.2 | CI 性能回归检测可用 | PR 中引入性能退步 → CI 报告差异并阻断 |
+| 6.5.3 | LLM 重试策略对 429 正确退避 | 单测：mock 429 + Retry-After → 等待指定时间后重试 |
+| 6.5.4 | LLM 不可重试错误立即失败 | 单测：mock 401 → 不重试，直接抛出 |
+| 6.5.5 | fallback 模型切换正常 | 单测：主模型 3 次失败 → 切换 fallback → 成功 |
+| 6.5.6 | 工具超时后结果注入上下文 | 单测：bash 超时 → Agent 收到 `{ timedOut: true }` → 可自主决策 |
+| 6.5.7 | Agent 异常退出状态保存 | 单测：模拟崩溃 → session 标记 interrupted → `/resume` 可恢复 |
+
+---
+
+### 里程碑 M6 验收（Week 25 末）
+
+> **开发者工具链完整可用：Inspector + 断点调试 + 圆桌脑暴 + 性能基准**
+
+| # | 端到端验收标准 | 验证方式 |
+|---|--------------|---------|
+| M6.1 | `--inspect` 启动 Inspector，浏览器可访问 6 面板 | 手动测试 |
+| M6.2 | 在 Inspector 中设置断点 → Agent 执行暂停 → 查看上下文 → 恢复执行 | 手动测试 |
+| M6.3 | `/roundtable` 触发多角色讨论 → 讨论结论可转为 Plan | 手动测试 |
+| M6.4 | 性能基准 CI 可运行且全部达标 | `vitest bench` 绿灯 |
+| M6.5 | LLM 重试 + fallback + Agent 善后全链路可工作 | 集成测试 |
+| M6.6 | 14 个包全部构建通过（含新增 @vitamin/server） | `pnpm build` 零错误 |
+
+---
+
+## Phase 7：试验性特性 — 自主编排与反馈（Week 26-33）
+
+> **来源**：技术方案 Part 10（10.5-10.6, 10.9）+ 分册 B/C  
+> **前置条件**：Phase 6 / M6 验收通过  
+> **目标**：动态 Agent 合成、上行反馈冒泡、同级协商、试验性特性综合测试
+
+### 7.1 自主 Agent 合成
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 26-29（14 天，核心路径） |
+| **依赖** | Phase 2 orchestrator + Phase 5 Agent 矩阵 |
+| **来源** | 10.5 自主 Agent 合成（分册 B） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `synthesis/requirement-analysis.ts` | `RequirementAnalysis` — 需求分析（识别现有 Agent 无法覆盖的能力缺口） |
+| `synthesis/agent-blueprint.ts` | `AgentBlueprint` — 结构化蓝图（角色定义、工具集、token 预算、依赖关系） |
+| `synthesis/synthesize-agent.ts` | `synthesizeAgent()` — 蓝图 → AgentConfig 合成引擎（安全检查 + 工具白名单） |
+| `synthesis/synthesis-orchestrator.ts` | `SynthesisOrchestrator` — 合成 Agent 编排执行（依赖拓扑、并行分批、失败策略） |
+| `synthesis/cached-blueprint.ts` | `CachedBlueprint` — 蓝图缓存与复用（相似需求命中历史蓝图） |
+| `synthesis/blueprint-validator.ts` | 蓝图验证器（工具白名单、资源上限、角色合规性检查） |
+| `synthesis/synthesis-config-schema.ts` | 试验性特性配置 Schema（10.5.15） |
+
+**实现约束**：
+
+- **Blueprint 模式**（ADR-015）：Sisyphus 生成结构化 `AgentBlueprint` → 引擎合成 → Orchestrator 编排，非元 LLM 直接编排
+- **安全边界**（强制）：`synthesizeAgent()` 强制执行工具白名单 + 资源上限（max token budget / max turns / max concurrent），LLM 生成的配置不直接执行
+- **用户确认环节**：合成 Agent 前展示 Blueprint 摘要（角色 + 工具 + 预算），用户可审查/修改后确认
+- **蓝图缓存**（10.5.12）：相似需求（余弦相似度 > 0.85）命中已有 CachedBlueprint，跳过 LLM 生成环节
+- **失败策略**（10.5.9）：`abort_all`（任一失败全部取消）/ `continue`（跳过失败继续）/ `retry`（自动重试 N 次）
+- **Inspector 集成**：合成 Agent 的 Blueprint + 依赖拓扑在 Inspector 的 Agent Monitor 中可视化展示
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 7.1.1 | 需求分析正确识别能力缺口 | 集成测试：提供超出预定义 Agent 的需求 → 输出缺失能力列表 |
+| 7.1.2 | Blueprint 结构完整且通过验证 | 单测：生成 Blueprint → `blueprintValidator.validate()` 通过 |
+| 7.1.3 | synthesizeAgent() 拒绝非法工具请求 | 单测：Blueprint 含非白名单工具 → 合成失败 + 错误信息 |
+| 7.1.4 | SynthesisOrchestrator 按拓扑并行执行 | 单测：3 Agent（A→B, A→C, B+C→D）→ 批次正确 |
+| 7.1.5 | abort_all 策略正确传播失败 | 单测：Agent A 失败 → 依赖 A 的所有后续 Agent 标记 failed |
+| 7.1.6 | 蓝图缓存命中复用 | 单测：相似需求（余弦 > 0.85）→ 使用缓存 Blueprint → 跳过 LLM |
+| 7.1.7 | 用户确认环节展示 Blueprint 摘要 | 集成测试：合成前 → 输出可读摘要等待确认 |
+
+---
+
+### 7.2 上行反馈与异常冒泡
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 30-32（12 天，核心路径） |
+| **依赖** | 7.1 Agent 合成（合成 Agent 需要冒泡能力） |
+| **来源** | 10.6 上行反馈与异常冒泡（分册 B） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `escalation/escalation-signal.ts` | `EscalationSignal` — 6 种结构化信号类型（capability / resource / permission / ambiguity / conflict / failure） |
+| `escalation/escalation-engine.ts` | `EscalationEngine` — 信号路由（匹配处理器、冒泡策略、超时兜底） |
+| `escalation/escalation-handlers.ts` | 分层处理器（自动解决 / Atlas 拦截 / Sisyphus 决策 / 用户上报） |
+| `escalation/escalate-tool.ts` | `escalate` 工具 — 子 Agent 发起上行反馈的 tool 接口 |
+| `escalation/bubble-policy.ts` | 冒泡策略（intercept / bubble / transform）+ 冒泡深度上限 |
+| `escalation/cascade-replanner.ts` | 级联重规划 — 上行反馈触发 Plan 部分修订（与 Plan/Build 集成） |
+| `escalation/escalation-dashboard.ts` | Inspector Escalation 面板（冒泡路径可视化） |
+
+**实现约束**：
+
+- **Promise 挂起模式**（ADR-016）：子 Agent `await escalate()` → Promise 挂起 → 父 Agent 决策 → `resolve()` 恢复，与断点引擎使用同一模式
+- **6 种信号类型**（10.6.3）：
+  - `capability` — 能力不足（"我无法处理二进制文件"）
+  - `resource` — 资源耗尽（token 预算 / 轮次上限）
+  - `permission` — 需要授权（文件写入 / 网络访问）
+  - `ambiguity` — 需求模糊（无法确定最佳方案）
+  - `conflict` — 与其他 Agent 冲突（同时修改同一文件）
+  - `failure` — 执行失败（工具报错 / LLM 拒绝）
+- **三级冒泡路径**（10.6.5）：子 Agent → Atlas（中间层拦截尝试解决）→ Sisyphus（顶层决策 + 人类上报）
+- **自动解决优先**：`capability` 冒泡前先匹配预定义 Agent 矩阵（是否有其他 Agent 能处理）；`resource` 自动扩大预算（在上限范围内）
+- **Escalation 延迟**（10.8）：单层路由 < 5ms（不含 LLM），完整 3 层冒泡 < 30s（含 LLM 决策）
+- **级联重规划**：上行反馈导致 Plan 步骤不可行时，触发 Prometheus 局部修订（仅修改受影响步骤，保留已完成进度）
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 7.2.1 | 6 种信号类型均可正确发送和路由 | 单测：逐一发送各类型 → EscalationEngine 路由到正确处理器 |
+| 7.2.2 | 三级冒泡链完整可工作 | 集成测试：子 Agent escalate → Atlas 不拦截 → Sisyphus 接收 |
+| 7.2.3 | Atlas 正确拦截可自行解决的 escalation | 单测：`capability` + 矩阵中存在合适 Agent → Atlas 重新分派 |
+| 7.2.4 | escalate 工具 Agent 可正确调用 | 集成测试：Agent system prompt 含 escalate → Agent 主动调用 |
+| 7.2.5 | 单层路由延迟 < 5ms（不含 LLM） | 性能测试：`handle()` 非 LLM 部分计时 |
+| 7.2.6 | 级联重规划触发正确 | 集成测试：步骤 3 失败 → escalation → Plan 步骤 3-5 修订 → 步骤 1-2 保留 |
+| 7.2.7 | 冒泡深度上限防止无限冒泡 | 单测：设置 `maxBubbleDepth: 3` → 第 4 层强制终止 |
+
+---
+
+### 7.3 同级协商与运行时临时圆桌
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 32-33（5 天） |
+| **依赖** | 6.3 圆桌引擎 + 7.2 Escalation |
+| **来源** | 10.6.16 同级协商与运行时临时圆桌（分册 B） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `roundtable/adhoc-roundtable.ts` | `AdHocRoundtable` — 运行时临时圆桌（Agent 间冲突时自动召集） |
+| `roundtable/negotiation-protocol.ts` | 协商协议（提案→反驳→折中→共识，最多 N 轮） |
+| `roundtable/conflict-detector.ts` | 冲突检测器（同一文件并发修改、方案矛盾等） |
+
+**实现约束**：
+
+- **触发条件**：Escalation 信号类型为 `conflict` 且涉及 ≥ 2 个 Agent → 自动创建 AdHocRoundtable
+- **超时降级**：`maxRounds` 轮后未达成共识 → 使用降级策略（优先级高的 Agent 方案优先 / 请求用户裁决）
+- **复用圆桌基础设施**：继承 6.3 的 `RoundtableSession`，但参与者为运行时 Agent 而非预定义角色
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 7.3.1 | conflict 类型 escalation 自动触发临时圆桌 | 集成测试：两 Agent 冲突 → AdHocRoundtable 创建 |
+| 7.3.2 | 协商在 maxRounds 内达成共识 | 单测：mock 共识 → 提前终止 |
+| 7.3.3 | 超时降级策略生效 | 单测：maxRounds=1 → 未共识 → 降级方案输出含 `unresolvedDisputes` |
+
+---
+
+### 7.4 试验性特性测试 + 集成验证
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 33（5 天） |
+| **依赖** | Phase 6 + 7.1-7.3 全部完成 |
+| **来源** | 10.9 试验性特性测试策略（分册 C） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `tests/breakpoint/concurrent-breakpoint.test.ts` | 并发断点测试（多 Agent 同时命中） |
+| `tests/escalation/bubble-chain.test.ts` | 冒泡链集成测试（子 → Atlas → Sisyphus → 用户） |
+| `tests/roundtable/adhoc-timeout.test.ts` | 临时圆桌超时降级测试 |
+| `tests/synthesis/failure-policy.test.ts` | Agent 合成失败策略测试（abort_all / continue / retry） |
+| `tests/e2e/experimental-features.test.ts` | 试验性特性 E2E 集成测试套件 |
+| `docs/experimental-features.md` | 试验性特性使用指南（Inspector / 断点 / 圆桌 / Agent 合成 / Escalation） |
+
+**实现约束**：
+
+- **测试策略**（10.9）：每个试验性特性至少 1 个并发测试 + 1 个超时/降级测试 + 1 个错误路径测试
+- **E2E 覆盖**：完整链路测试 — "需求→Agent 合成→执行→Escalation→圆桌协商→恢复" 端到端
+- **性能回归**：10.8 定义的所有 P95 指标纳入 CI 持续监控
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 7.4.1 | 试验性特性专项测试全部通过 | `vitest run tests/breakpoint tests/escalation tests/roundtable tests/synthesis` |
+| 7.4.2 | E2E 覆盖完整链路（合成→执行→冒泡→协商） | E2E 测试通过 |
+| 7.4.3 | 性能基准 CI 无回归 | `vitest bench` 与 M6 基线对比 < 20% 退步 |
+| 7.4.4 | 试验性特性文档完整 | 文档包含 5 个特性的使用指南 + 配置说明 |
+
+---
+
+### 里程碑 M7 / v0.2.0 验收（Week 33 末）
+
+> **试验性特性完整可用：Agent 合成 + Escalation + 同级协商 + Inspector + 断点 + 圆桌**
+
+| # | 端到端验收标准 | 验证方式 |
+|---|--------------|---------|
+| M7.1 | 自主 Agent 合成完整流程：需求→Blueprint→确认→合成→执行 | 手动测试 |
+| M7.2 | Agent Escalation 三级冒泡链完整工作 | 集成测试 |
+| M7.3 | 同级协商临时圆桌由 conflict 信号自动触发 | 集成测试 |
+| M7.4 | Inspector 可视化断点 + Agent 合成拓扑 + Escalation 冒泡路径 | 手动测试 |
+| M7.5 | 全量测试（含试验性特性）通过率 ≥ 95% | `pnpm test` |
+| M7.6 | 性能基准 10.8 全部 P95 达标 | `vitest bench` |
+| M7.7 | 14 个包全部发布到 npm（含 @vitamin/server） | npm registry 验证 |
+| M7.8 | 试验性特性文档 + 升级指南完整 | 文档审查 |
+
+---
+
+## Phase 8：云端部署 — 存储抽象与沙箱（Week 34-41）
+
+> **来源**：技术方案 Part 9（09-cloud-deployment.md，1985 行完整设计）  
+> **前置条件**：Phase 5 / v0.1.0 已发布（存储抽象不依赖试验性特性，可与 Phase 6-7 并行推进）  
+> **目标**：存储后端可插拔（JSONL→PostgreSQL→S3）、Redis 缓存层、工具沙箱隔离（3 后端）、审计日志、数据生命周期管理  
+> **新增包**：`@vitamin/sandbox`（15 号包）；`@vitamin/cloud`（16 号包，归档/工厂/配置）
+
+### 8.1 SessionStorage 抽象层 + PostgreSQL 实现
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 34-35（8 天） |
+| **依赖** | Phase 3 session（`@vitamin/session` 已稳定） |
+| **来源** | 09-cloud-deployment.md §9.2 + §9.3 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/session/src/storage/storage-interface.ts` | `SessionStorage` 抽象接口（CRUD + 查询 + 压缩 + 生命周期） |
+| `packages/session/src/storage/in-memory-storage.ts` | `InMemoryStorage` — 测试用內存实现 |
+| `packages/cloud/src/storage/postgres-storage.ts` | `PostgresStorage` — PostgreSQL 实现（递归 CTE 树查询） |
+| `packages/cloud/src/storage/pg-schema.sql` | 数据库 Schema（sessions + session_entries + audit_logs + 索引） |
+| `packages/cloud/src/storage/pg-migrations/` | 数据库迁移脚本 |
+| `packages/session/src/session-manager.ts` | **改造**：构造函数接受 `SessionStorage` 接口注入 |
+
+**实现约束**：
+
+- **零业务代码修改**（强制）：`SessionManager` 所有方法（fork / getTree / navigateTo / compact）不改动任何逻辑，仅将底层 `JsonlStorage` 替换为注入的 `SessionStorage`
+- **构造函数注入**：`new SessionManager(new JsonlStorage(dir))`（单机）/ `new SessionManager(new PostgresStorage(pool))`（云端）/ `new SessionManager(new InMemoryStorage())`（测试）
+- **PostgreSQL 递归 CTE**（§9.3.2）：`getPathToRoot()` 使用 `WITH RECURSIVE` 替代内存遍历，大型会话树查询性能 O(depth) vs O(N)
+- **审计日志表**（§9.3.1）：`audit_logs` 表 + 按月分区 + userId 索引 + JSONB detail 字段
+- **数据库 Schema 版本管理**：迁移脚本按版本号顺序执行，每个迁移幂等可重入
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 8.1.1 | SessionManager 通过 `InMemoryStorage` 全部原有单测不变 | 替换 storage → 全部 Phase 3 会话单测通过 |
+| 8.1.2 | PostgresStorage 实现 SessionStorage 全部方法 | 集成测试：Docker PostgreSQL → CRUD + 树查询 |
+| 8.1.3 | 递归 CTE `getPathToRoot()` 结果正确 | 单测：5 层树 → getPathToRoot(叶节点) → 返回 5 个节点 |
+| 8.1.4 | 审计日志写入 + 查询 | 集成测试：写入 100 条 → 按 userId + 时间范围查询 |
+| 8.1.5 | 数据库迁移脚本幂等 | 集成测试：同一迁移执行 2 次 → 无错误 |
+| 8.1.6 | JsonlStorage 仍为默认（零配置即可用） | `createStorageBackend()` 无参数 → 返回 JsonlStorage |
+
+---
+
+### 8.2 Redis 缓存层
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 35-36（5 天） |
+| **依赖** | 8.1 SessionStorage 抽象 |
+| **来源** | 09-cloud-deployment.md §9.4 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/cloud/src/cache/cached-storage.ts` | `CachedStorage` — 装饰器模式包装任意 `SessionStorage` + Redis 缓存 |
+| `packages/cloud/src/cache/cache-keys.ts` | 缓存 Key 命名规范（`session:{id}:path:{entryId}`、`session:{id}:tree` 等） |
+| `packages/cloud/src/cache/invalidation.ts` | 写时失效策略（write → invalidate cache → update） |
+
+**实现约束**：
+
+- **Write-Through + TTL**（ADR-011）：PostgreSQL 始终有最新数据，Redis 仅加速读取；TTL 兜底防内存泄漏
+- **缓存 Key TTL**（§9.4.1）：
+  - `session:{id}:path:{entryId}` → 10min
+  - `session:{id}:tree` → 5min
+  - `session:{id}:info` → 30min
+  - `agent:{instanceId}:state` → 心跳续期
+- **装饰器模式**：`new CachedStorage(new PostgresStorage(pool), redis)`，读路径优先查 Redis，写路径先写 PG 后失效缓存
+- **Redis 不可用降级**：Redis 连接失败 → 自动降级为直接查 PostgreSQL，不阻断服务
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 8.2.1 | 缓存命中时不查 PostgreSQL | 单测：mock PG + 预热缓存 → read → PG 零调用 |
+| 8.2.2 | 缓存未命中时查 PG 并回写缓存 | 单测：空缓存 → read → PG 调用 1 次 → 再 read → PG 零调用 |
+| 8.2.3 | 写操作正确失效缓存 | 单测：write → 对应 key 被删除 → 下次 read 走 PG |
+| 8.2.4 | Redis 不可用时降级到直接 PG | 单测：mock Redis 断开 → read/write 正常（走 PG） |
+| 8.2.5 | TTL 过期后自动重查 | 单测：设 TTL=100ms → 等待 150ms → read → 走 PG |
+
+---
+
+### 8.3 @vitamin/sandbox — 工具沙箱隔离
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 36-39（15 天） |
+| **依赖** | Phase 1 tools（工具接口） |
+| **来源** | 09-cloud-deployment.md §9.8（完整设计含 3 后端 + 工厂 + 沙箱化工具） |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/sandbox/src/sandbox-interface.ts` | `Sandbox` 统一抽象接口（exec + fs + limits + mcp proxy） |
+| `packages/sandbox/src/sandbox-fs.ts` | `SandboxFileSystem` 文件系统接口 |
+| `packages/sandbox/src/sandbox-limits.ts` | `SandboxLimits` 资源限制定义（CPU / 内存 / 超时 / 网络白名单 / 命令黑名单） |
+| `packages/sandbox/src/backends/os-native-sandbox.ts` | **OS-native**：cgroups v2 + seccomp + chroot 隔离（仅 Linux） |
+| `packages/sandbox/src/backends/server-wasm-sandbox.ts` | **Server Wasm**：Wasmtime/WasmEdge WASI 沙箱（跨平台，冷启动 < 10ms） |
+| `packages/sandbox/src/backends/browser-wasm-sandbox.ts` | **Browser Wasm**：BrowserPod/WebVM 浏览器沙箱（零服务器成本） |
+| `packages/sandbox/src/create-sandbox.ts` | 沙箱工厂 + 自动检测最佳后端（`"auto"` 模式） |
+| `packages/sandbox/src/create-sandboxed-tools.ts` | 沙箱化工具创建器（bash / file_read / file_write / list_dir） |
+| `packages/sandbox/src/mcp-proxy.ts` | `SandboxMcpProxy` — 沙箱内 MCP 工具代理桥接 |
+
+**实现约束**：
+
+- **统一抽象接口**（§9.8.2）：所有后端实现 `Sandbox` 接口（`initialize() → exec() → fs → destroy()`），Agent 循环完全屏蔽底层
+- **OS-native**（§9.8.3）：Linux cgroups v2 CPU/内存限制 + chroot 文件隔离 + 命令黑名单（`rm -rf /`、`dd if=`、fork bomb 等）
+- **Server Wasm**（§9.8.4）：WASI 能力白名单模型（默认拒绝所有，显式授予 fs/net），Wasmtime fuel 机制做 CPU 限制，线性内存隔离
+- **Browser Wasm**（§9.8.5）：BrowserPod SDK 集成，IndexedDB 虚拟文件系统，通过 postMessage 与宿主通信
+- **自动选择逻辑**（§9.8.6）：browserPod 存在 → browser-wasm；wasmtime/wasmedge 可用 → server-wasm；Linux + cgroup → os-native；兜底 → server-wasm
+- **路径逃逸防护**（强制）：所有 `SandboxFileSystem` 实现必须校验 `resolve()` 不逃逸 `workDir`
+- **MCP 代理**（§9.8.2）：沙箱内 Agent 通过 `SandboxMcpProxy` 调用宿主 MCP 工具，宿主控制白名单
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 8.3.1 | OS-native：命令执行 + 结果返回 | 集成测试（Linux CI）：`exec("echo hello")` → stdout="hello" |
+| 8.3.2 | OS-native：命令黑名单阻止危险命令 | 单测：`exec("rm -rf /")` → exitCode=1 + stderr 含 "blocked" |
+| 8.3.3 | OS-native：内存限制生效 | 集成测试：设 256MB → 执行内存分配 512MB → OOM killed |
+| 8.3.4 | Server Wasm：WASI 冷启动 < 10ms（P95） | 性能测试：100 次 initialize() → P95 < 10ms |
+| 8.3.5 | Server Wasm：文件隔离仅 /workspace 可写 | 单测：`fs.writeFile("/etc/passwd", ...)` → 抛出路径逃逸错误 |
+| 8.3.6 | Browser Wasm：基本执行可用 | 集成测试（浏览器环境）：`exec("ls")` → 返回文件列表 |
+| 8.3.7 | 工厂 `"auto"` 模式正确检测后端 | 单测：mock 环境 → 返回正确后端类型 |
+| 8.3.8 | 沙箱化工具与 Agent 集成 | 集成测试：createSandboxedTools → bash/file_read/file_write/list_dir 均可用 |
+| 8.3.9 | 路径逃逸防护对所有后端生效 | 单测：3 个后端 × `fs.readFile("../../etc/passwd")` → 全部拒绝 |
+| 8.3.10 | MCP 代理桥接可用 | 集成测试：沙箱内 callTool → 宿主 MCP 执行 → 结果返回沙箱 |
+
+---
+
+### 8.4 审计日志 + 日志持久化
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 39-40（5 天） |
+| **依赖** | 8.1 PostgresStorage + Phase 2 hooks |
+| **来源** | 09-cloud-deployment.md §9.5 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/cloud/src/hooks/audit-logger.ts` | `cloud:audit-logger` Hook — 记录所有工具执行到 PostgreSQL（不可禁用） |
+| `packages/shared/src/logger.ts` | **改造**：`createLogger()` 支持 `mode: "cloud"` → JSON stdout + trace context + redact |
+| `packages/cloud/src/logging/trace-context.ts` | OpenTelemetry trace context 注入（可选） |
+| `packages/cloud/src/logging/log-redactor.ts` | 敏感字段脱敏（apiKey / password / token → `[REDACTED]`） |
+| `docker/docker-compose.cloud.yml` | 日志基础设施参考配置（Promtail → Loki → Grafana） |
+
+**实现约束**：
+
+- **审计日志三层**（§9.5.1）：运行日志（pino → stdout → Loki）、审计日志（Hook → PostgreSQL audit_logs）、对话数据（SessionStorage → PG + S3）
+- **审计 Hook 不可禁用**（强制）：`disableable: false`，最高优先级（priority: 10），异步写入不阻塞工具执行
+- **敏感字段脱敏**（强制）：apiKey / password / secret / token / authorization → `[REDACTED]`
+- **云端日志格式**：JSON Lines → stdout → 容器日志收集器自动采集，添加 service / instance / version 元数据
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 8.4.1 | 审计 Hook 记录工具执行到 PostgreSQL | 集成测试：执行 bash 工具 → audit_logs 表有记录 |
+| 8.4.2 | 审计 Hook 不可被禁用 | 单测：`disabled_hooks: ["cloud:audit-logger"]` → Hook 仍生效 |
+| 8.4.3 | 敏感字段正确脱敏 | 单测：含 apiKey 的参数 → 审计记录中为 `[REDACTED]` |
+| 8.4.4 | 云端日志为 JSON Lines 格式 | 单测：`mode: "cloud"` → 输出每行可 `JSON.parse` |
+| 8.4.5 | 本地日志模式不受影响 | 单测：`mode: "local"` → 仍写 `/tmp/vitamin.log` + pino-pretty |
+
+---
+
+### 8.5 数据生命周期 + Storage 工厂 + Cloud Config
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 40-41（5 天） |
+| **依赖** | 8.1 + 8.2 + 8.4 |
+| **来源** | 09-cloud-deployment.md §9.6 + §9.7 + §9.9 + §9.10 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/cloud/src/archiver.ts` | `SessionArchiver` — 冷数据归档（PG → S3 JSONL.gz）+ 恢复（S3 → PG） |
+| `packages/cloud/src/create-storage-backend.ts` | `createStorageBackend()` 工厂 — 根据配置自动组装存储链（JSONL / PG / PG+Redis） |
+| `packages/config/src/schema/cloud.ts` | `CloudConfigSchema` — Zod v4 云端部署配置（storage_backend / database_url / redis_url / sandbox / archive / audit / logging） |
+| `packages/cloud/src/data-retention.ts` | 数据保留策略执行器（定时清理过期数据） |
+| `packages/cloud/package.json` | 新包 `@vitamin/cloud` 配置 |
+
+**实现约束**：
+
+- **分层存储**（§9.7.1）：Hot（Redis，分钟级 TTL）→ Warm（PG，30 天可查询）→ Cold（S3，30 天+ 归档）
+- **归档策略**（§9.7.2）：超过 `archiveAfterDays` 天未更新的会话 → 导出 JSONL.gz 到 S3 → 删除 PG 中条目 → 保留 sessions 元数据索引
+- **恢复可用**：归档会话可按需从 S3 恢复到 PG，事务保证（BEGIN/COMMIT/ROLLBACK）
+- **工厂自动组装**（§9.6）：`createStorageBackend(config)` 根据 `storage_backend` 字段自动选择：`"jsonl"` → JsonlStorage；`"postgres"` → PostgresStorage；`"postgres"` + `redis_url` → CachedStorage(PG, Redis)
+- **Cloud Config Schema**（§9.9）：`storage_backend` / `database_url` / `redis_url` / `sandbox.*` / `archive.*` / `audit.*` / `logging.*`
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|---------|
+| 8.5.1 | 归档：不活跃会话迁移到 S3 | 集成测试：30 天未更新会话 → archiver 执行 → S3 有文件 + PG entries 已删 |
+| 8.5.2 | 恢复：从 S3 恢复归档会话 | 集成测试：恢复 → PG 条目回写 → SessionManager 可读 |
+| 8.5.3 | 工厂：`"jsonl"` 返回 JsonlStorage | 单测：config.storage_backend="jsonl" → instanceof JsonlStorage |
+| 8.5.4 | 工厂：`"postgres"` + redis_url 返回 CachedStorage | 单测：PG + Redis → CachedStorage wrapping PostgresStorage |
+| 8.5.5 | CloudConfigSchema Zod 验证正确 | 单测：合法/非法配置 → 验证通过/报错 |
+| 8.5.6 | 云端 vs 单机零代码差异 | 集成测试：同一 SessionManager 代码 → 切换 storage → 行为一致 |
+
+---
+
+### 里程碑 M8 / v0.3.0 验收（Week 41 末）
+
+> **云端部署完整可用：存储可插拔 + 沙箱隔离 + 审计日志 + 数据归档**
+
+| # | 端到端验收标准 | 验证方式 |
+|---|--------------|---------|
+| M8.1 | Docker Compose 一键启动云端环境（vitamin + PG + Redis） | `docker compose up` → 服务健康 |
+| M8.2 | 会话数据持久化到 PostgreSQL，重启后可恢复 | 创建会话 → 重启容器 → 会话仍在 |
+| M8.3 | Redis 缓存加速读取（命中率 > 80% 稳态） | 监控面板或日志统计 |
+| M8.4 | 三种沙箱后端至少一种可在 CI 中通过 | OS-native（Linux CI）或 Server Wasm 全部测试通过 |
+| M8.5 | 审计日志记录所有工具执行，可按用户/时间查询 | `SELECT * FROM audit_logs WHERE user_id=? AND created_at > ?` |
+| M8.6 | 冷数据自动归档到 S3 + 可恢复 | 触发归档 → S3 有文件 → 恢复 → 会话可用 |
+| M8.7 | 单机模式完全不受影响（零配置 JSONL 默认） | 无 DATABASE_URL/REDIS_URL → `pnpm start` 正常 |
+| M8.8 | 16 个包全部构建通过 | `pnpm build` 零错误 |
+
+---
+
+## Phase 9：Web UI — 浏览器端交互界面（Week 42-49）
+
+> **来源**：技术方案 Part 12（12-web-ui.md）  
+> **前置条件**：Phase 6（@vitamin/server）+ Phase 8（@vitamin/cloud）已完成  
+> **目标**：提供浏览器端完整交互界面，作为 TUI 的 Web 替代方案  
+> **新增包**：`@vitamin/web-ui`（17 号包）  
+> **技术栈**：React 19 + TypeScript + Vite 6 + Mantine v7
+
+### 9.1 Server API 扩展 + 项目骨架
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 42-43（8 天） |
+| **依赖** | Phase 6.1 @vitamin/server |
+| **来源** | 12-web-ui.md §12.5, §12.7 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `packages/server/src/api/web-ui.ts` | 消息发送（SSE 流式响应）、中断、分叉 API |
+| `packages/server/src/api/files.ts` | 文件列表 / 内容 / diff API |
+| `packages/server/src/api/models.ts` | 可用模型列表 API |
+| `packages/server/src/api/config-client.ts` | 客户端配置 API |
+| `packages/server/src/auth/` | Token 认证 + OAuth 认证中间件 |
+| `packages/web-ui/package.json` | @vitamin/web-ui 包骨架 |
+| `packages/web-ui/vite.config.ts` | Vite + React SWC + 代理配置 |
+| `packages/web-ui/src/theme.ts` | Mantine 深色主题定制（参考 Kimi 风格） |
+| `packages/web-ui/src/app.tsx` | App 根组件（Router + MantineProvider） |
+| `packages/web-ui/src/services/` | API 客户端 + SSE/WebSocket 流客户端 |
+
+**实现约束**：
+
+- **API 向后兼容**：扩展端点不影响 Phase 6 已有的 Inspector API
+- **双模部署**：开发用 Vite dev server（`localhost:5173`）+ 生产内嵌到 `@vitamin/server`（`/app` 路径）
+- **认证可选**：`--web-ui --no-auth`（本地） / Token 认证（单人） / OAuth（团队）
+- **深色主题优先**：默认 dark mode，配色参考 Kimi 深色风格（背景 `#1a1b1e`，低对比度层次）
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|------|
+| 9.1.1 | `POST /api/sessions/:id/messages` 返回 SSE 流式响应 | 集成测试：发送消息 → 收到 text_delta + done 事件 |
+| 9.1.2 | `POST /api/sessions/:id/messages/:mid/stop` 中断 Agent | 集成测试：执行中 → 调用 stop → Agent 停止 |
+| 9.1.3 | 文件 API 返回会话关联文件列表 + diff | 单测：mock 文件 → API 返回正确结构 |
+| 9.1.4 | Token 认证中间件可拦截未授权请求 | 单测：无 token → 401；有效 token → 通过 |
+| 9.1.5 | Vite dev server 代理到 @vitamin/server 正常工作 | 手动测试：`pnpm dev` → API 请求代理成功 |
+| 9.1.6 | Mantine 深色主题加载无报错 | 单测：MantineProvider + theme → render 成功 |
+
+---
+
+### 9.2 左侧栏 + 主对话区
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 43-45（12 天） |
+| **依赖** | 9.1 骨架 |
+| **来源** | 12-web-ui.md §12.3.1, §12.3.2, §12.3.3 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `src/components/sidebar/` | 会话列表（虚拟滚动 + 搜索 + 分组 + 右键菜单） |
+| `src/components/chat/chat-container.tsx` | 对话容器（自动滚动 + 虚拟列表） |
+| `src/components/chat/assistant-message.tsx` | Assistant 消息（流式渲染 + Thinking 折叠） |
+| `src/components/chat/code-block.tsx` | 代码块（Shiki 语法高亮 + 复制 + 行号） |
+| `src/components/chat/tool-call-card.tsx` | 工具调用卡片（状态实时更新） |
+| `src/components/chat/markdown-renderer.tsx` | Markdown 渲染（GFM + KaTeX + Mermaid） |
+| `src/components/chat/progress-indicator.tsx` | 多步骤进度展示（Kimi 风格勾选列表） |
+| `src/components/input/` | 输入区（自适应高度 + 命令面板 + 文件上传） |
+| `src/hooks/use-chat.ts` | 对话核心 Hook（发送/流式接收/中断） |
+| `src/hooks/use-sessions.ts` | 会话 CRUD（TanStack Query） |
+| `src/hooks/use-stream.ts` | SSE/WebSocket 流式数据 Hook |
+| `src/stores/ui-store.ts` | UI 状态管理（Zustand） |
+
+**实现约束**：
+
+- **流式渲染**：逐 token 追加，`requestAnimationFrame` 节流，避免频繁 DOM 更新
+- **虚拟滚动**：会话列表与消息列表均使用 `@tanstack/react-virtual`，支持 1000+ 消息无卡顿
+- **Thinking Block**：默认折叠显示"正在思考..."动画，展开后实时流式追加
+- **工具卡片**：左侧彩色竖条标识状态（蓝=运行中/绿=成功/红=失败）+ 工具名 + 耗时
+- **进度指示器**：带数字的步骤列表 + 完成勾选动画（参考 Kimi "当前进度 10/10" 样式）
+- **代码块**：Shiki WASM + Web Worker 异步高亮，避免阻塞主线程
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|------|
+| 9.2.1 | 会话列表按日期分组 + 搜索过滤可用 | 组件测试：渲染 20 条会话 → 分组正确 + 搜索命中 |
+| 9.2.2 | 消息流式渲染无明显卡顿（60fps） | Playwright + CPU throttle → 无掉帧 |
+| 9.2.3 | Thinking Block 折叠/展开交互正确 | 组件测试：点击展开 → 内容可见 → 再点折叠 |
+| 9.2.4 | 代码块语法高亮 + 复制按钮 | 组件测试：渲染 TypeScript 代码 → 高亮正确 + 复制到剪贴板 |
+| 9.2.5 | 工具调用卡片实时状态更新 | 组件测试：mock 状态变化 → 卡片颜色/图标/耗时更新 |
+| 9.2.6 | 输入框 `/` 触发命令面板 | 组件测试：输入 `/` → 命令列表弹出 → 选择 → 填入 |
+| 9.2.7 | 文件拖放上传为附件 | 组件测试：模拟 drop → 附件预览条显示 |
+| 9.2.8 | 1000 条消息滚动流畅 | 性能测试：虚拟列表渲染 1000 条 → 滚动帧率 ≥ 55fps |
+
+---
+
+### 9.3 右侧面板 + 响应式布局
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 45-46（5 天） |
+| **依赖** | 9.2 主对话区 |
+| **来源** | 12-web-ui.md §12.3.4, §12.2.2 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `src/components/panel/file-panel.tsx` | 文件面板（文件树 + diff 查看器 + 批量下载） |
+| `src/components/panel/agent-panel.tsx` | Agent 状态面板（运行状态 + 工具历史 + Token 统计） |
+| `src/components/layout/app-shell.tsx` | 三栏布局外壳（响应式断点切换） |
+| `src/components/layout/header.tsx` | 顶部栏（Logo + 模型选择 + 设置） |
+| `src/components/layout/status-bar.tsx` | 状态栏（Token 统计 + 模型信息 + 连接状态） |
+| `src/hooks/use-responsive.ts` | 响应式断点检测 Hook |
+| `src/hooks/use-agent-status.ts` | Agent 实时状态订阅 |
+
+**实现约束**：
+
+- **三级响应式**：Desktop ≥ 1200px（三栏）/ Tablet 768-1199px（左侧栏可折叠）/ Mobile < 768px（仅主区域）
+- **面板标签页**：右侧面板通过标签切换文件/Agent 两个子面板
+- **Diff 查看器**：Unified diff 格式，增删行红绿高亮
+- **Token 统计**：本次对话 / 累计使用 / 费用估算，实时更新
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|------|
+| 9.3.1 | Desktop 三栏布局正确 | 截图对比：≥ 1200px → 三栏均可见 |
+| 9.3.2 | Tablet 尺寸左侧栏可折叠 | 组件测试：768px → 汉堡按钮可见 → 点击展开侧栏 |
+| 9.3.3 | Mobile 尺寸仅显示主对话区 | 组件测试：< 768px → 侧栏隐藏 → 菜单触发 |
+| 9.3.4 | 文件 diff 查看器正确渲染 unified diff | 组件测试：mock diff → 增删行高亮 |
+| 9.3.5 | Token 统计实时更新 | 组件测试：mock 流式事件 → 数字递增 |
+
+---
+
+### 9.4 设置页 + 内嵌部署 + 测试
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 47-48（8 天） |
+| **依赖** | 9.3 布局完成 |
+| **来源** | 12-web-ui.md §12.4.3, §12.8, §12.10 |
+
+**交付物**：
+
+| 文件 | 职责 |
+|------|------|
+| `src/routes/settings.tsx` | 设置页（模型配置 + 主题切换 + 快捷键方案） |
+| `src/routes/settings-models.tsx` | 模型管理页（Provider + API Key 配置） |
+| `src/routes/settings-agents.tsx` | Agent 管理页（列表 + 自定义 Agent） |
+| `scripts/build-embed.ts` | 构建脚本：Vite 构建 → 复制到 `@vitamin/server/dist/web-ui/` |
+| `@vitamin/server` 侧集成 | 检测 `dist/web-ui/` → 注册 `/app` 静态路由 + SPA fallback |
+| `tests/components/` | 核心组件测试（Vitest + Testing Library） |
+| `tests/hooks/` | Hook 测试（useChat / useStream / useSessions） |
+| `tests/e2e/` | E2E 测试（Playwright：完整对话流） |
+
+**实现约束**：
+
+- **内嵌构建**：`pnpm --filter @vitamin/web-ui build:embed` 产出复制到 server 包，生产环境 `http://localhost:9229/app` 访问
+- **SPA fallback**：`/app/*` 所有未匹配路由返回 `index.html`
+- **API Key 安全**：设置页的 API Key 输入仅显示掩码，不回传明文
+- **主题持久化**：主题偏好存储在 `localStorage`，刷新后保留
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|------|
+| 9.4.1 | 设置页模型配置可保存 + 生效 | E2E：修改默认模型 → 新对话使用新模型 |
+| 9.4.2 | 深色/浅色主题切换正常 | E2E：切换主题 → 刷新 → 主题保持 |
+| 9.4.3 | 内嵌模式 `/app` 路径可访问完整 SPA | 集成测试：`pnpm build:embed` → `curl /app` → HTML 返回 |
+| 9.4.4 | 组件单测覆盖率 ≥ 80% | `vitest run --coverage` |
+| 9.4.5 | E2E 完整对话流（发送→流式→工具→完成） | Playwright：模拟完整对话 → 消息正确渲染 |
+| 9.4.6 | SPA 路由刷新不 404 | E2E：直接访问 `/app/chat/xxx` → 页面正常加载 |
+
+---
+
+### 9.5 性能优化 + 视觉回归 + 文档
+
+| 项目 | 说明 |
+|------|------|
+| **工期** | Week 48-49（5 天） |
+| **依赖** | 9.4 功能完成 |
+| **来源** | 12-web-ui.md §12.9, §12.10 |
+
+**交付物**：
+
+| 交付物 | 说明 |
+|--------|------|
+| 性能优化 | 代码分割 + lazy load + Shiki Web Worker + 构建产物 < 500KB gzip |
+| 视觉回归测试 | Playwright 截图对比（深色/浅色 × Desktop/Tablet/Mobile = 6 组基线） |
+| Lighthouse CI | 集成到 CI：LCP < 1.5s / CLS < 0.1 |
+| Web UI 用户指南 | `docs/guide/web-ui.md` — 使用说明 + 部署配置 |
+| Web UI 开发指南 | `docs/guide/web-ui-development.md` — 组件开发 + API 对接规范 |
+
+**验收标准**：
+
+| # | 标准 | 验证方式 |
+|---|------|------|
+| 9.5.1 | 构建产物初始加载 < 500KB（gzip） | `vite build` → 检查产物大小 |
+| 9.5.2 | LCP < 1.5s | Lighthouse CI 报告 |
+| 9.5.3 | 6 组视觉回归基线建立 | Playwright 截图 → CI 对比零差异 |
+| 9.5.4 | 用户指南覆盖安装/配置/使用全流程 | 文档审查 |
+| 9.5.5 | Dev HMR < 200ms | 手动测试：修改组件 → 浏览器热更新耗时 |
+
+---
+
+### 里程碑 M9 / v0.4.0 验收（Week 49 末）
+
+> **Web UI 完整可用：浏览器端 AI 对话 + 文件管理 + 响应式布局**
+
+| # | 端到端验收标准 | 验证方式 |
+|---|--------------|---------|
+| M9.1 | 浏览器访问 `/app` 显示完整 Web UI | `http://localhost:9229/app` → SPA 加载 |
+| M9.2 | 完整对话流程可工作（发送→流式→Thinking→工具→完成） | E2E：Playwright 全流程 |
+| M9.3 | 会话管理可用（创建/搜索/删除/归档） | E2E：CRUD 操作全部通过 |
+| M9.4 | 三种屏幕尺寸响应式布局正确 | 视觉回归：6 组截图零差异 |
+| M9.5 | 代码块语法高亮 + Markdown 渲染（含公式/流程图） | E2E：渲染含代码/公式/Mermaid 的回复 → 正确展示 |
+| M9.6 | 深色/浅色主题切换正常 | E2E：切换 → 刷新 → 主题保持 |
+| M9.7 | 性能达标（LCP < 1.5s / 1000 消息 60fps） | Lighthouse + 性能测试 |
+| M9.8 | 17 个包全部构建通过 | `pnpm build` 零错误 |
+
+---
+
 ## 里程碑与交付物
 
 ```
@@ -1015,6 +1943,29 @@ Week 15 ──── M5/v0.1.0: 正式发布
              ├── 26+ 工具（含 task 管理 + hashline-edit）
              ├── E2E + 文档
              └── npm 发布
+
+Week 25 ──── M6: 开发者工具链
+             ├── @vitamin/server (HTTP/WebSocket + Inspector)
+             ├── DevTools Inspector (6 面板)
+             ├── Agent 断点与步进调试 (6 类型 + 7 检查点)
+             ├── 三模式编排：圆桌脑暴引擎
+             ├── 性能基准体系 (P95 CI 回归)
+             └── LLM 重试 + Agent 善后强化
+
+Week 33 ──── M7/v0.2.0: 试验性特性发布
+             ├── 自主 Agent 合成 (Blueprint + Orchestrator)
+             ├── 上行反馈与异常冒泡 (6 信号 + 3 级冒泡)
+             ├── 同级协商与运行时临时圆桌
+             ├── 试验性特性综合测试 + 文档
+             └── npm 14 个包发布
+
+Week 41 ──── M8/v0.3.0: 云端部署发布
+             ├── SessionStorage 抽象层 + PostgreSQL 实现
+             ├── Redis 缓存层 (CachedStorage 装饰器)
+             ├── @vitamin/sandbox (OS-native + Server Wasm + Browser Wasm)
+             ├── 审计日志 + 日志持久化 (Loki/ES)
+             ├── 数据生命周期管理 (S3 归档/恢复)
+             └── npm 16 个包发布
 ```
 
 ---
@@ -1033,20 +1984,35 @@ Week 15 ──── M5/v0.1.0: 正式发布
 | R8 | AWS SDK 体积与平台兼容 | Bedrock 适配器拉大包体积 | 低 | 标记为 optional peer dep + 懒加载 |
 | R9 | E2E 测试 LLM 调用费用 | CI 费用失控 | 中 | CI 中 mock LLM + 仅 nightly 跑真实调用 |
 | R10 | API Key 泄露 | 安全事件 | 低 | 内存中加密 + 日志脱敏 + .gitignore 强化 |
+| R11 | 圆桌多角色讨论质量退化 | "同模型换语气"无实质差异 | 中 | 角色 prompt 强差异化 + 共识度阈值 + 早期中断机制 + 效果数据收集后决定是否内置 |
+| R12 | Agent 合成 LLM 成本 | Blueprint 生成 token 消耗大 | 中 | 蓝图缓存（相似度 > 0.85 复用）+ token 预算上限 + 用户确认环节 |
+| R13 | Escalation 风暴 | 大量 Agent 同时冒泡导致决策延迟 | 低 | 冒泡深度上限 + 批量合并相似 escalation + 自动解决优先 |
+| R14 | Inspector 前端维护负担 | React + Vite 技术栈增加构建复杂度 | 低 | 前端产物预构建内嵌到 @vitamin/server，主构建流程不受影响 |
+| R15 | PostgreSQL 运维复杂度 | 云端部署门槛提高 | 中 | JSONL 仍为默认，PG 仅云端启用；提供 Docker Compose 一键启动 + 迁移脚本 |
+| R16 | Wasm 运行时兼容性 | Server Wasm 后端工具生态受限 | 中 | OS-native 作为完整工作负载备选；Server Wasm 用于可控工具集场景 |
+| R17 | Browser Wasm 性能与内存限制 | 浏览器 2-4GB 内存上限 | 中 | 视为轻量场景（Web IDE / 教育），复杂任务引导转 Server 端 |
+| R18 | S3 归档数据亏损 | 归档后 PG 数据已删 | 低 | 归档前验证 S3 上传成功；恢复操作事务保护 |
+| R19 | Web UI 构建体积膨胀 | Mantine + Shiki + KaTeX 拉大初始包 | 中 | 严格 code-split + lazy load + Shiki WASM 按需加载 |
+| R20 | 前后端 API 版本不一致 | 前端升级但 server 未更新 | 低 | API 版本头 + 兼容性检测 + 启动时版本校验 |
+| R21 | SSE 长连接稳定性 | 网络抖动导致流式中断 | 中 | 自动重连 + 断点续传 + 指数退避 |
 
 ---
 
-## 排除范围（v0.1.0 不包含）
+## 排除范围（v0.4.0 不包含）
 
-以下特性在技术方案中有设计但推迟到 v0.2.0+：
+以下特性在技术方案中有设计但推迟到 v0.5.0+：
 
 | 特性 | 来源 | 推迟原因 |
 |------|------|---------|
-| Part 10 试验性特性（圆桌脑暴、Inspector、断点系统等） | 10-experimental.md + 分册 A/B/C | 试验性质，工期额外 ~18 周 |
-| SQLite 存储后端 | 03-package-design.md §3.7.1 `sqlite-storage.ts` | JSONL 已满足 MVP 需求 |
+| SQLite 存储后端 | 03-package-design.md §3.7.1 `sqlite-storage.ts` | JSONL + PostgreSQL 已覆盖单机/云端，SQLite 为中间方案优先级低 |
 | Gist 导出 | 03-package-design.md §3.7.1 `gist-export.ts` | 低优先级 |
 | xAI / Groq / OpenRouter / DeepSeek Provider | 03-package-design.md §3.1.1 | 通过 OpenAI-compatible 模式间接支持 |
 | Extension marketplace / Git 来源 | 05-extension-system.md §5.2 | npm + local 先行 |
+| 生产环境 Human-in-the-Loop（持久化断点） | ADR-014 权衡 | 断点引擎仅用于开发调试，生产场景另行设计 |
+| 多实例弹性伸缩（分布式锁 + 负载均衡） | 09-cloud-deployment.md §9.1.2 备注 | v0.3.0 聚焦单实例部署，多实例叠加分布式锁 |
+| Web UI 国际化（i18n） | 12-web-ui.md | v0.4.0 仅支持中文/英文，多语言后续扩展 |
+| Web UI 自定义主题编辑器 | 12-web-ui.md §12.6 | 深色/浅色两套足够，自定义主题编辑器延后 |
+| 移动端原生应用（React Native） | — | Web 响应式覆盖移动端基础需求 |
 
 ---
 
@@ -1067,3 +2033,7 @@ Week 15 ──── M5/v0.1.0: 正式发布
 | @vitamin/tui | shared | 4 | M4 |
 | @vitamin/coding-agent | 全部 | 4 | M4 |
 | @vitamin/sdk | coding-agent | 4 | M4 |
+| @vitamin/server | shared, agent, session, hooks | 6 | M6 |
+| @vitamin/sandbox | shared, tools | 8 | M8 |
+| @vitamin/cloud | session, config, shared, sandbox | 8 | M8 |
+| @vitamin/web-ui | server (HTTP API) | 9 | M9 |

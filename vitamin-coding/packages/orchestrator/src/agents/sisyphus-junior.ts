@@ -1,5 +1,5 @@
 // Sisyphus Junior — Category 分类执行器 Agent (快速任务)
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import { wrapAgent } from './agent-adapter'
 
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
@@ -35,7 +35,11 @@ export function createSisyphusJuniorAgent(
     maxToolTurns: options?.maxToolTurns ?? 20,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

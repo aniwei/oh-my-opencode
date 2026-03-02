@@ -26,6 +26,15 @@ export interface CompactionRecord {
   todoState?: string
 }
 
+// Token 使用统计
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  totalCost: number
+}
+
 // 会话元数据
 export interface SessionMetadata {
   id: string
@@ -35,7 +44,9 @@ export interface SessionMetadata {
   messageCount: number
   tags: string[]
   model?: string
+  agent?: string
   activeEntryId?: string
+  tokenUsage: TokenUsage
 }
 
 // 会话树节点
@@ -59,6 +70,8 @@ export interface SessionSummary {
 export interface BoulderState {
   active_plan: string
   session_ids: string[]
+  status: 'rolling' | 'paused' | 'completed' | 'failed'
+  current_step?: string
   progress: {
     total: number
     completed: number
@@ -106,10 +119,41 @@ export interface SessionStorage {
   listSessionIds(): Promise<string[]>
 }
 
+// 会话搜索/过滤选项
+export interface SessionSearchOptions {
+  query?: string
+  tags?: string[]
+  model?: string
+  agent?: string
+  dateRange?: { from?: number; to?: number }
+  sortBy?: 'updatedAt' | 'createdAt' | 'messageCount'
+  sortOrder?: 'asc' | 'desc'
+  limit?: number
+  offset?: number
+}
+
 // HTML 导出选项
 export interface HtmlExportOptions {
   title?: string
   includeMetadata?: boolean
   syntaxHighlight?: boolean
   theme?: 'light' | 'dark'
+}
+
+// Markdown 导出选项
+export interface MarkdownExportOptions {
+  includeMetadata?: boolean
+  includeToolCalls?: boolean
+  includeTimestamps?: boolean
+}
+
+// JSON 导出选项
+export interface JsonExportOptions {
+  includeMetadata?: boolean
+  pretty?: boolean
+}
+
+// 自动标题生成器
+export interface AutoTitleGenerator {
+  generate(firstMessage: string): Promise<string>
 }

@@ -52,4 +52,9 @@ export type {
   CompactionResult,
   SessionStorage,
   HtmlExportOptions,
+  MarkdownExportOptions,
+  JsonExportOptions,
+  TokenUsage,
+  SessionSearchOptions,
+  AutoTitleGenerator,
 } from './types'

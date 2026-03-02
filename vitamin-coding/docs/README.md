@@ -31,6 +31,13 @@
 | [10b-dynamic-agents-escalation.md](10b-dynamic-agents-escalation.md) | 10.5 Agent 合成 + 10.5.15 配置 Schema + 10.6 上行反馈 |
 | [10c-validation-testing-slo.md](10c-validation-testing-slo.md) | 10.8 性能基准 + 10.9 测试策略 + 10.10 错误路径 |
 
+### 扩展设计专题
+
+| 文档 | 说明 |
+|------|------|
+| [13-model-provider-opencode-alignment.md](13-model-provider-opencode-alignment.md) | Provider 体系对标 OpenCode 的设计与分阶段落地（首批含 Copilot） |
+| [14-tui-opencode-alignment.md](14-tui-opencode-alignment.md) | TUI 交互链路对标 OpenCode 的设计与分阶段落地 |
+
 ### 开发计划
 
 | 文档 | 说明 |

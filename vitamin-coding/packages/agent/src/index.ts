@@ -16,6 +16,10 @@ export type { StreamFn, AgentLoopOptions } from './agent-loop'
 export { createToolExecutor } from './tool-executor'
 export type { ToolExecutor, ToolHookExecutor } from './tool-executor'
 
+// 记忆管理
+export { MemoryManager, createMemoryManager } from './memory'
+export type { MemoryEntry, MemorySummary, MemoryManagerConfig } from './memory'
+
 // 错误类型
 export {
   AgentLoopError,

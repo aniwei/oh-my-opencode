@@ -1,6 +1,6 @@
 // Metis — 计划前分析师 Agent (§S14.1 Step 2)
 // 并行调用 explore + librarian → 收集上下文摘要 → 判断复杂度 → 建议是否需要正式计划
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
 import type { Model } from '@vitamin/ai'
 
@@ -44,7 +44,11 @@ export function createMetisAgent(
     maxToolTurns: options?.maxToolTurns ?? 20,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

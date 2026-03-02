@@ -1,5 +1,5 @@
 // Hephaestus — 自主深度工作者 Agent (全工具访问)
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
 import type { Model } from '@vitamin/ai'
 
@@ -36,7 +36,11 @@ export function createHephaestusAgent(
     maxToolTurns: options?.maxToolTurns ?? 80,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

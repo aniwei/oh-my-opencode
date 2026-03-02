@@ -94,6 +94,42 @@ export interface SlashCommand {
   execute: (args: string) => void | Promise<void>
 }
 
+// MCP 服务器注册配置
+export interface McpRegistration {
+  name: string
+  transport: 'stdio' | 'http'
+  command?: string
+  args?: string[]
+  url?: string
+  headers?: Record<string, string>
+}
+
+// Extension UI 上下文 — 提供交互能力
+export interface ExtensionUIContext {
+  select<T extends string>(options: { title: string; items: Array<{ label: string; value: T }> }): Promise<T | undefined>
+  confirm(options: { title: string; message: string }): Promise<boolean>
+  input(options: { title: string; placeholder?: string }): Promise<string | undefined>
+  notify(options: { message: string; level?: 'info' | 'warn' | 'error' }): void
+  setStatus(text: string): void
+}
+
+// Extension Config 上下文
+export interface ExtensionConfigContext {
+  get<T = unknown>(key: string): T | undefined
+  set(key: string, value: unknown): Promise<void>
+  getAll(): Record<string, unknown>
+}
+
+// Extension Agent 上下文
+export interface ExtensionAgentContext {
+  setModel(modelId: string): void
+  getModel(): string
+  setThinkingLevel(level: 'none' | 'low' | 'medium' | 'high'): void
+  setActiveTools(toolNames: string[]): void
+  sendMessage(text: string): Promise<void>
+  exec(command: string): Promise<string>
+}
+
 // Extension API — 提供给 Extension 的接口
 export interface ExtensionAPI {
   // 事件系统
@@ -108,8 +144,14 @@ export interface ExtensionAPI {
   // 工具注册
   registerTool(tool: AgentTool): () => void
 
+  // MCP 服务器注册
+  registerMcp(config: McpRegistration): () => void
+
   // 斜杠命令注册
   registerCommand(command: SlashCommand): () => void
+
+  // 快捷键注册
+  registerShortcut(key: string, handler: () => void | Promise<void>): () => void
 
   // 日志
   log: {
@@ -121,6 +163,11 @@ export interface ExtensionAPI {
   // 事件总线通信
   emit(event: string, data: unknown): void
   onBus(event: string, handler: (data: unknown) => void): () => void
+
+  // 上下文
+  ui: ExtensionUIContext
+  config: ExtensionConfigContext
+  agent: ExtensionAgentContext
 }
 
 // Extension 工厂函数类型

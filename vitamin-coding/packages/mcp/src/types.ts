@@ -115,10 +115,11 @@ export function formatMcpToolName(mcpName: string, toolName: string): string {
 }
 
 // 从命名空间工具名提取 MCP 名和工具名
+// 使用双下划线 __ 作为分隔符，MCP 名称允许包含单下划线
 export function parseMcpToolName(
   namespacedName: string,
 ): { mcpName: string; toolName: string } | undefined {
-  const match = namespacedName.match(/^mcp__([^_]+)__(.+)$/)
+  const match = namespacedName.match(/^mcp__(.+?)__(.+)$/)
   if (!match) return undefined
   const mcpName = match[1]
   const toolName = match[2]

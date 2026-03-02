@@ -1,5 +1,5 @@
 // Librarian — 外部知识搜索 Agent (只读 + MCP, §S5.3)
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
 import type { Model } from '@vitamin/ai'
 
@@ -38,7 +38,11 @@ export function createLibrarianAgent(
     maxToolTurns: options?.maxToolTurns ?? 20,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

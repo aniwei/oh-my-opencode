@@ -1,5 +1,5 @@
 // Agent 核心类 — 状态机 + steering/followUp 队列
-import { TypedEventEmitter } from '@vitamin/shared'
+import { createLogger, TypedEventEmitter } from '@vitamin/shared'
 
 import { agentLoop } from './agent-loop'
 import { AbortError } from './errors'
@@ -17,6 +17,8 @@ import type {
   AgentStatus,
   AgentTool,
 } from './types'
+
+const log = createLogger('agent:core')
 
 // Agent 事件映射
 type AgentEvents = {
@@ -263,7 +265,8 @@ export class Agent {
 
     const allowed = VALID_TRANSITIONS[from]
     if (!allowed?.has(to)) {
-      // 非法转换时记录但不抛出，避免中断循环
+      // 非法转换时记录警告但不抛出，避免中断循环
+      log.warn('Invalid state transition: %s → %s (ignored)', from, to)
       return
     }
 

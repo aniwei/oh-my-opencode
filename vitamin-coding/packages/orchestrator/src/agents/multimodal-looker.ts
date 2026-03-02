@@ -1,5 +1,5 @@
 // Multimodal Looker — 多模态查看 Agent (截图/图片分析)
-import { createAgent } from '@vitamin/agent'
+import { createAgentWithRegistry as createAgent } from '@vitamin/agent'
 import type { AgentConfig, AgentTool } from '@vitamin/agent'
 import type { Model } from '@vitamin/ai'
 
@@ -34,7 +34,11 @@ export function createMultimodalLookerAgent(
     maxToolTurns: options?.maxToolTurns ?? 10,
   }
 
-  const agent = createAgent(config)
+  const agent = createAgent({
+    ...config,
+    providerRegistry: options?.providerRegistry,
+    apiKey: options?.apiKey,
+  })
   if (options?.eventListener) {
     agent.on(options.eventListener)
   }

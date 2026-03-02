@@ -2,12 +2,15 @@
 import { z } from 'zod'
 import { AgentsConfigSchema } from './agents'
 import { CategoriesConfigSchema } from './categories'
+import { CompactionConfigSchema } from './compaction'
 import { BackgroundTaskConfigSchema, ExperimentalConfigSchema } from './experimental'
 import { ExtensionsConfigSchema } from './extensions'
 import { McpConfigSchema } from './mcp'
+import { NotificationConfigSchema } from './notification'
 import { SessionConfigSchema } from './session'
 import { SkillsConfigSchema } from './skills'
 import { ToolPresetSchema } from './tools'
+import { TmuxConfigSchema } from './tmux'
 import { TuiConfigSchema } from './tui'
 
 export const LogLevelSchema = z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal'])
@@ -18,6 +21,7 @@ export const VitaminConfigStrictSchema = z.object({
   config_version: z.string().optional(),
   log_level: LogLevelSchema.optional(),
   model: z.string().optional(),
+  model_fallback: z.array(z.string()).optional(),
   theme: z.string().optional(),
   agents: AgentsConfigSchema.optional(),
   categories: CategoriesConfigSchema.optional(),
@@ -27,7 +31,9 @@ export const VitaminConfigStrictSchema = z.object({
   session: SessionConfigSchema.optional(),
   tui: TuiConfigSchema.optional(),
   skills: SkillsConfigSchema.optional(),
-  compaction: z.record(z.string(), z.unknown()).optional(),
+  compaction: CompactionConfigSchema.optional(),
+  tmux: TmuxConfigSchema.optional(),
+  notification: NotificationConfigSchema.optional(),
   background_task: BackgroundTaskConfigSchema.optional(),
   experimental: ExperimentalConfigSchema.optional(),
   disabled_agents: z.array(z.string()).optional(),

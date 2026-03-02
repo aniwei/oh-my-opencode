@@ -13,11 +13,16 @@ import { createJsonlStorage } from './storage/jsonl-storage'
 import type { CompactorConfig, StrategyName } from './compaction/compactor'
 import type { SessionTree } from './session-tree'
 import type {
+  AutoTitleGenerator,
   HtmlExportOptions,
+  JsonExportOptions,
+  MarkdownExportOptions,
   SessionEntry,
   SessionMetadata,
+  SessionSearchOptions,
   SessionStorage,
   SessionSummary,
+  TokenUsage,
 } from './types'
 
 const log = createLogger('session:manager')
@@ -28,6 +33,8 @@ export interface SessionManagerConfig {
   baseDir: string
   // 压缩配置
   compaction?: Partial<CompactorConfig>
+  // 自动标题生成器
+  autoTitleGenerator?: AutoTitleGenerator
 }
 
 // 会话管理器
@@ -35,6 +42,7 @@ export class SessionManager {
   private readonly storage: SessionStorage
   private readonly sessions = new Map<string, SessionTree>()
   private readonly metadataCache = new Map<string, SessionMetadata>()
+  private readonly tokenUsageCache = new Map<string, TokenUsage>()
   private readonly compactor: ReturnType<typeof createCompactor>
 
   constructor(private readonly config: SessionManagerConfig) {
@@ -54,6 +62,7 @@ export class SessionManager {
       updatedAt: now,
       messageCount: 0,
       tags: [],
+      tokenUsage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalCost: 0 },
     }
 
     // 写入初始系统事件
@@ -109,6 +118,58 @@ export class SessionManager {
     if (metadata) {
       metadata.messageCount++
       metadata.updatedAt = entry.timestamp
+    }
+
+    // 自动标题：第一条用户消息时触发
+    if (metadata && metadata.messageCount === 1 && message.role === 'user' && this.config.autoTitleGenerator) {
+      const userText = typeof message.content === 'string' ? message.content : ''
+      if (userText.length > 0) {
+        this.config.autoTitleGenerator.generate(userText).then((title) => {
+          if (title && metadata) {
+            metadata.title = title
+            log.info(`自动标题: ${sessionId} → ${title}`)
+          }
+        }).catch((error) => {
+          log.warn(`自动标题失败: ${String(error)}`)
+        })
+      }
+    }
+  }
+
+  // 更新 Token 使用量
+  updateTokenUsage(sessionId: string, usage: Partial<TokenUsage>): void {
+    const metadata = this.metadataCache.get(sessionId)
+    if (!metadata) return
+
+    metadata.tokenUsage.inputTokens += usage.inputTokens ?? 0
+    metadata.tokenUsage.outputTokens += usage.outputTokens ?? 0
+    metadata.tokenUsage.cacheReadTokens += usage.cacheReadTokens ?? 0
+    metadata.tokenUsage.cacheWriteTokens += usage.cacheWriteTokens ?? 0
+    metadata.tokenUsage.totalCost += usage.totalCost ?? 0
+  }
+
+  // 更新会话 Agent
+  updateAgent(sessionId: string, agent: string): void {
+    const metadata = this.metadataCache.get(sessionId)
+    if (metadata) {
+      metadata.agent = agent
+    }
+  }
+
+  // 更新会话 Model
+  updateModel(sessionId: string, model: string): void {
+    const metadata = this.metadataCache.get(sessionId)
+    if (metadata) {
+      metadata.model = model
+    }
+  }
+
+  // 重命名会话
+  async rename(sessionId: string, title: string): Promise<void> {
+    const metadata = this.metadataCache.get(sessionId)
+    if (metadata) {
+      metadata.title = title
+      metadata.updatedAt = Date.now()
     }
   }
 
@@ -194,6 +255,49 @@ export class SessionManager {
     return summaries
   }
 
+  // 搜索/过滤会话
+  async search(options: SessionSearchOptions): Promise<SessionSummary[]> {
+    const all = await this.list()
+    let filtered = all
+
+    // 关键词搜索（标题匹配）
+    if (options.query) {
+      const q = options.query.toLowerCase()
+      filtered = filtered.filter((s) => s.title.toLowerCase().includes(q))
+    }
+
+    // 标签过滤
+    if (options.tags && options.tags.length > 0) {
+      filtered = filtered.filter((s) =>
+        options.tags!.some((tag) => s.tags.includes(tag)),
+      )
+    }
+
+    // 日期范围过滤
+    if (options.dateRange) {
+      if (options.dateRange.from) {
+        filtered = filtered.filter((s) => s.updatedAt >= options.dateRange!.from!)
+      }
+      if (options.dateRange.to) {
+        filtered = filtered.filter((s) => s.updatedAt <= options.dateRange!.to!)
+      }
+    }
+
+    // 排序
+    const sortBy = options.sortBy ?? 'updatedAt'
+    const sortOrder = options.sortOrder ?? 'desc'
+    filtered.sort((a, b) => {
+      const aVal = a[sortBy] as number
+      const bVal = b[sortBy] as number
+      return sortOrder === 'desc' ? bVal - aVal : aVal - bVal
+    })
+
+    // 分页
+    const offset = options.offset ?? 0
+    const limit = options.limit ?? filtered.length
+    return filtered.slice(offset, offset + limit)
+  }
+
   // 删除会话
   async remove(sessionId: string): Promise<void> {
     await this.storage.remove(sessionId)
@@ -220,8 +324,11 @@ export class SessionManager {
       return
     }
 
-    // 查找已有摘要
-    const existingCompaction = entries.find((e) => e.type === 'compaction')
+    // 查找最新的摘要（多次压缩后应取最后一条）
+    const compactionEntries = entries.filter((e) => e.type === 'compaction')
+    const existingCompaction = compactionEntries.length > 0
+      ? compactionEntries[compactionEntries.length - 1]
+      : undefined
     const existingSummary = existingCompaction
       ? (existingCompaction.content as { summary: string }).summary
       : undefined
@@ -264,6 +371,73 @@ export class SessionManager {
     return exportToHtml(messages, metadata, options)
   }
 
+  // 导出为 Markdown
+  async exportMarkdown(
+    sessionId: string,
+    options?: MarkdownExportOptions,
+  ): Promise<string> {
+    const tree = await this.getTree(sessionId)
+    const entries = tree.getActiveMessages()
+    const metadata = this.metadataCache.get(sessionId) ?? this.buildMetadata(sessionId, tree)
+    const lines: string[] = []
+
+    if (options?.includeMetadata !== false) {
+      lines.push(`# ${metadata.title}`, '')
+      lines.push(`- **创建时间**: ${new Date(metadata.createdAt).toLocaleString('zh-CN')}`)
+      lines.push(`- **消息数**: ${String(metadata.messageCount)}`)
+      if (metadata.model) {
+        lines.push(`- **模型**: ${metadata.model}`)
+      }
+      lines.push('')
+      lines.push('---', '')
+    }
+
+    for (const entry of entries) {
+      if (entry.type === 'message') {
+        const msg = entry.content as Message
+        const roleLabel = msg.role === 'user' ? '👤 User' : '🤖 Assistant'
+        const timestamp = options?.includeTimestamps
+          ? ` _${new Date(entry.timestamp).toLocaleTimeString('zh-CN')}_`
+          : ''
+
+        lines.push(`### ${roleLabel}${timestamp}`, '')
+
+        if (typeof msg.content === 'string') {
+          lines.push(msg.content, '')
+        }
+      } else if (entry.type === 'system' && options?.includeToolCalls) {
+        lines.push(`> 系统事件: ${JSON.stringify(entry.content)}`, '')
+      }
+    }
+
+    return lines.join('\n')
+  }
+
+  // 导出为 JSON
+  async exportJson(
+    sessionId: string,
+    options?: JsonExportOptions,
+  ): Promise<string> {
+    const tree = await this.getTree(sessionId)
+    const entries = tree.getActiveMessages()
+    const metadata = this.metadataCache.get(sessionId) ?? this.buildMetadata(sessionId, tree)
+
+    const exportData = {
+      ...(options?.includeMetadata !== false ? { metadata } : {}),
+      messages: entries
+        .filter((e) => e.type === 'message')
+        .map((e) => ({
+          role: (e.content as Message).role,
+          content: (e.content as Message).content,
+          timestamp: e.timestamp,
+        })),
+    }
+
+    return options?.pretty !== false
+      ? JSON.stringify(exportData, null, 2)
+      : JSON.stringify(exportData)
+  }
+
   // 从会话树构建元数据
   private buildMetadata(sessionId: string, tree: SessionTree): SessionMetadata {
     const entries = tree.getEntries()
@@ -287,6 +461,13 @@ export class SessionManager {
       messageCount: messageEntries.length,
       tags: [],
       activeEntryId: tree.getActiveEntryId() ?? undefined,
+      tokenUsage: this.tokenUsageCache.get(sessionId) ?? {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+        totalCost: 0,
+      },
     }
   }
 }

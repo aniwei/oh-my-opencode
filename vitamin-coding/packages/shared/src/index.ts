@@ -31,7 +31,7 @@ export {
 } from './disposable'
 export type { Disposable, AsyncDisposable } from './disposable'
 
-export { createLogger, getRootLogger } from './logger'
+export { createLogger, getRootLogger, attachLogListener } from './logger'
 
 export {
   readTextFile,

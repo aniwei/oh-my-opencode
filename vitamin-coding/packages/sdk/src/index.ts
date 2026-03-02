@@ -25,4 +25,8 @@ export type {
   RPCError,
   RPCServerOptions,
   RPCClientOptions,
+  ExternalToolDefinition,
+  AgentEventName,
+  AgentEventHandler,
+  AgentEventPayloadMap,
 } from './types'

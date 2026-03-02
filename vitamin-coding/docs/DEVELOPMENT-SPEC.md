@@ -41,8 +41,9 @@
 | 单文件上限 | 200 LOC（soft limit） | AGENTS.md |
 | 禁止 catch-all | 不允许 `utils.ts`, `helpers.ts`, `service.ts` | AGENTS.md |
 | 字符串引号 | 优先使用单引号（`'`），仅在字符串含单引号时用双引号或模板字符串 | 项目约定 |
+| 默认语言 | 文档、注释、提交说明、交互文案默认使用中文；仅在外部协议/标准字段要求时使用英文 | 团队约定 |
 | 注释风格 | 统一使用中文 `//` 行注释，不使用 `/** JSDoc */` 块注释 | CONVENTIONS.md |
-| 模块引入 | 相对路径不加 `.js` 后缀（`moduleResolution: bundler`） | CONVENTIONS.md |
+| 模块引入 | 相对路径不加 `.js` 后缀（源码强制，构建产物除外；`moduleResolution: bundler`） | CONVENTIONS.md |
 | 引入排序 | 包名引入 → 相对路径引入 → 类型引入（类型内部同理：包名在前、相对在后） | CONVENTIONS.md |
 | 测试位置 | 测试文件放在 `packages/<name>/tests/` 独立目录，不与源码混放 | CONVENTIONS.md |
 
@@ -509,6 +510,130 @@ const BUILTIN_CATEGORIES = {
   review:   { preferredModels: ['openai/gpt-5.2', 'anthropic/claude-opus-4-6'] },
 }
 ```
+
+### S3.7 Provider Runtime View（三层合并模型）
+
+```typescript
+// 目标：对齐 OpenCode 的 provider 聚合思路
+// 合并顺序：catalog <- config <- authRuntimePatch
+
+export type ProviderRuntimeInfo = {
+  id: string
+  name: string
+  source: 'catalog' | 'config' | 'auth'
+  env: string[]
+  options: Record<string, unknown>
+  models: Record<string, Model>
+}
+
+export type ProviderRuntimePatch = {
+  options?: Record<string, unknown>
+  headers?: Record<string, string>
+  key?: string
+}
+
+function buildProviderRuntimeView(
+  catalog: Record<string, ProviderRuntimeInfo>,
+  configProviders: Record<string, Partial<ProviderRuntimeInfo>>,
+  authPatches: Record<string, ProviderRuntimePatch>,
+): Record<string, ProviderRuntimeInfo> {
+  const merged = deepMerge(catalog, configProviders)
+
+  for (const [providerId, patch] of Object.entries(authPatches)) {
+    if (!merged[providerId]) continue
+    merged[providerId].options = deepMerge(merged[providerId].options, patch.options ?? {})
+    if (patch.headers) {
+      merged[providerId].options = deepMerge(merged[providerId].options, {
+        headers: patch.headers,
+      })
+    }
+  }
+
+  return merged
+}
+```
+
+强制约束：
+
+- 认证层不得写入业务配置文件（Auth/Config 解耦）。
+- `install`/`doctor` 只处理凭据检查，不直接变更 `provider.options/models`。
+- runtime patch 仅在进程内生效，可复现且可追踪来源。
+
+### S3.8 Copilot Provider 规范（首批基准实现）
+
+```typescript
+// packages/ai/src/providers/github-copilot.ts
+
+const COPILOT_PROVIDER_ID = 'github-copilot'
+const COPILOT_BASE_URL = 'https://api.githubcopilot.com'
+
+type CopilotCredential = {
+  token: string
+  source: 'env' | 'config' | 'oauth'
+}
+
+function resolveCopilotCredential(): CopilotCredential {
+  // 优先级：env > config > oauth
+  if (process.env.GITHUB_TOKEN) {
+    return { token: process.env.GITHUB_TOKEN, source: 'env' }
+  }
+  if (config.provider?.['github-copilot']?.options?.api_key) {
+    return { token: String(config.provider['github-copilot'].options.api_key), source: 'config' }
+  }
+  const oauth = loadOAuthSession('github-copilot')
+  if (oauth?.accessToken) {
+    return { token: oauth.accessToken, source: 'oauth' }
+  }
+  throw new ProviderError('Missing GitHub Copilot credential', {
+    code: 'PROVIDER_AUTH_MISSING',
+  })
+}
+
+function inferCopilotApiMode(modelId: string): 'responses' | 'completions' {
+  // 与 coding-agent 的占位推导保持一致，可按能力扩展
+  return modelId.includes('gpt-5') ? 'responses' : 'completions'
+}
+```
+
+请求头规范（最小集）：
+
+- `Authorization: Bearer <token>`
+- `User-Agent: vitamin-coding-agent/<version>`
+- 预留 Copilot 扩展头注入位（如 editor/integration 标识）
+
+### S3.9 Provider 可诊断错误规范（suggestions + 认证语义）
+
+```typescript
+export class ProviderModelNotFoundError extends ProviderError {
+  constructor(
+    readonly providerID: string,
+    readonly modelID: string,
+    readonly suggestions: string[] = [],
+  ) {
+    super(`Model not found: ${providerID}/${modelID}`, {
+      code: 'PROVIDER_MODEL_NOT_FOUND',
+    })
+  }
+}
+
+function mapProviderAuthError(providerId: string, statusCode?: number): ProviderError {
+  if (providerId === 'github-copilot' && (statusCode === 401 || statusCode === 403)) {
+    return new ProviderError('GitHub Copilot authentication expired, please reconnect', {
+      code: 'PROVIDER_AUTH_EXPIRED',
+    })
+  }
+
+  return new ProviderError(`Provider auth failed: ${providerId}`, {
+    code: 'PROVIDER_AUTH_FAILED',
+  })
+}
+```
+
+强制约束：
+
+- provider/model 查找失败必须返回最多 3 条候选建议。
+- 401/403 需区分“认证失效”与“普通请求失败”。
+- 错误对象必须包含 `providerID`、`modelID`（若可用）和标准化 `code`。
 
 ---
 
@@ -1407,6 +1532,43 @@ function measureWidth(text: string): number {
 }
 ```
 
+### S11.3 TUI 事件循环与输入规范（OpenCode 对齐点）
+
+```typescript
+// 终端生命周期必须成对出现
+start():
+  terminal.enableRawMode()
+  terminal.startListening()
+  hideCursor()
+  clearScreen()
+
+cleanup():
+  terminal.stopListening()
+  showCursor()
+  clearScreen()
+  terminal.disableRawMode()
+
+// 输入分发顺序（强制）
+handleInput(raw):
+  1) keyId = sequenceToKeyId(raw)
+  2) if keyId 命中全局快捷键: 执行并 return
+  3) parseKey(raw) -> ParsedKey
+  4) currentPage.handleInput(parsed)
+  5) renderCurrentPage()
+
+// resize 同步要求
+onResize(cols, rows):
+  renderer.resize(cols, rows)
+  allPages.resize(cols)
+  renderCurrentPage()
+```
+
+约束：
+
+- 全局快捷键优先于页面输入。  
+- Enter 语义统一：页面至少支持 `enter`（可兼容 `return`）。  
+- Tab 与 Shift+Tab 形成双向页面切换语义。
+
 ---
 
 ## S12. @vitamin/coding-agent 实现规范
@@ -1505,6 +1667,31 @@ await hookEngine.execute('chat.message.before', { message: input })
     // 8. 费用统计更新
     updateCostTracker(lastResponse.usage)
 ```
+
+    ### S12.4 interactive 模式与 TUI 接入契约
+
+    ```
+    ModeRunner(interactive).run(session, options):
+      app = new InteractiveApp(session, options)
+      await app.start()
+
+    InteractiveApp:
+      - 负责 terminal/renderer/keybindings/page 路由编排
+      - 不直接耦合 provider/transport 细节
+
+    页面职责边界:
+      - ConversationPage: 输入提交 + 对话渲染
+      - SessionListPage: 会话列表浏览/选择
+      - SettingsPage: 可编辑配置项（如 model）
+    ```
+
+    交互契约：
+
+    - `Ctrl+C`：若 Agent 正在运行则中断；否则退出应用。  
+    - `Ctrl+D`：退出应用。  
+    - `Ctrl+L`：清屏并重绘当前页面。  
+    - `Tab/Shift+Tab`：按顺序/逆序切换页面。  
+    - 未命中全局快捷键时，按键事件下沉到当前页面。
 
 ---
 
