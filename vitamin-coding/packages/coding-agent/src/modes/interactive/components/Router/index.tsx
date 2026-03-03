@@ -1,6 +1,6 @@
 import { Children, cloneElement, isValidElement, useEffect, useMemo, useState } from 'react'
 
-import { Context } from './Context'
+import { Context } from './context'
 import useRouter, { useNavigate } from './hooks'
 
 import type { ReactElement, ReactNode } from 'react'
@@ -171,6 +171,7 @@ export const Router = ({ children, defaultUrl = '/' }: RouterProps) => {
     if (!to) {
       return
     }
+
     setCurrentPathValue(to)
   }
 

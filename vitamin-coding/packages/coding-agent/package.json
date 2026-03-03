@@ -36,11 +36,8 @@
     "@vitamin/session": "workspace:*",
     "@vitamin/shared": "workspace:*",
     "@vitamin/tools": "workspace:*",
-    "blessed": "^0.1.81",
-    "neo-blessed": "^0.2.0",
-    "react": "^17.0.2",
-    "react-blessed": "^0.7.2",
-    "react-blessed-router": "^0.2.6"
+    "ink": "^6.8.0",
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public",

@@ -1,6 +1,5 @@
 import blessed from 'blessed'
-import { Router, Routes, Route, IndexRoute, Link, Navigate } from './components/Router'
-import { useLocation } from './components/Router/hooks'
+import { Router, Routes, Route, IndexRoute, Navigate } from './components/Router'
 import { render } from 'react-blessed'
 
 import { Home } from './pages/Home'
