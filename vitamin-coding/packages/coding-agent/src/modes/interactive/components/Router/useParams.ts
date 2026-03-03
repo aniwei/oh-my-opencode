@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { Context } from './context'
+import { Context } from './c'
 
 export const useParams = () => {
   const context = useContext(Context)

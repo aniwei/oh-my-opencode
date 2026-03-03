@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { Context } from './context'
+import { Context } from './c'
 
 export default function useRouter() {
   return useContext(Context)

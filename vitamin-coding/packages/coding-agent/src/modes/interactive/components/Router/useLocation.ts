@@ -1,9 +1,5 @@
 import { useContext } from 'react'
-import { Context } from './context'
-
-export default function useRouter() {
-  return useContext(Context)
-}
+import { Context } from './c'
 
 export const useNavigate = () => {
   const context = useContext(Context)

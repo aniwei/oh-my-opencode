@@ -1,6 +1,6 @@
 import { Children, cloneElement, isValidElement, useEffect, useMemo, useState } from 'react'
 
-import { Context } from './context'
+import { Context } from './c'
 import useRouter, { useNavigate } from './hooks'
 
 import type { ReactElement, ReactNode } from 'react'
