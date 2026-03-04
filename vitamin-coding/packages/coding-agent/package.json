@@ -25,6 +25,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@inkjs/ui": "^2.0.0",
     "@vitamin/agent": "workspace:*",
     "@vitamin/ai": "workspace:*",
     "@vitamin/config": "workspace:*",
@@ -36,16 +37,21 @@
     "@vitamin/session": "workspace:*",
     "@vitamin/shared": "workspace:*",
     "@vitamin/tools": "workspace:*",
+    "clipboardy": "^5.3.1",
+    "fuzzysort": "^3.1.0",
     "ink": "^6.8.0",
-    "react": "^17.0.2"
+    "ink-text-input": "^6.0.0",
+    "ink-use-stdout-dimensions": "^1.0.5",
+    "react": "^19.2.4",
+    "react-router": "^7.13.1",
+    "zustand": "^5.0.8"
   },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
   "devDependencies": {
-    "@types/blessed": "^0.1.27",
-    "@types/react": "^17.0.91",
-    "@types/react-blessed": "^0.7.8"
+    "@types/ink-spinner": "^3.0.5",
+    "@types/react": "^19.2.14"
   }
 }

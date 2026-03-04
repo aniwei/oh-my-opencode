@@ -6,5 +6,11 @@
     "jsx": "react-jsx"
   },
   "include": ["src"],
-  "exclude": ["dist", "node_modules", "tests"]
+  "exclude": [
+    "dist",
+    "node_modules",
+    "tests",
+    "src/modes/interactive/index-backup.tsx",
+    "src/modes/interactive/route/session/**"
+  ]
 }
