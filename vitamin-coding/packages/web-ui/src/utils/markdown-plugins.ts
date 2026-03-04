@@ -24,7 +24,7 @@ export function extractLanguage(className: string | undefined): string {
   }
 
   const match = className.match(/language-(\S+)/)
-  return match ? match[1] : ''
+  return match?.[1] ?? ''
 }
 
 /**

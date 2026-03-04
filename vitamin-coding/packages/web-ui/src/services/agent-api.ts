@@ -1,4 +1,6 @@
 import { apiClient } from './api-client'
+import { mockBackend } from './mock-backend'
+import { isMockApiEnabled } from './mock-mode'
 
 export interface AgentInfo {
   id: string
@@ -22,6 +24,10 @@ export interface AgentStatusDetail {
 }
 
 export const agentApi = {
-  list: () => apiClient.get<{ agents: AgentInfo[] }>('/api/agents'),
-  getStatus: (agentId: string) => apiClient.get<AgentStatusDetail>(`/api/agents/${agentId}/status`),
+  list: () => isMockApiEnabled()
+    ? mockBackend.listAgents()
+    : apiClient.get<{ agents: AgentInfo[] }>('/api/agents'),
+  getStatus: (agentId: string) => isMockApiEnabled()
+    ? mockBackend.getAgentStatus(agentId)
+    : apiClient.get<AgentStatusDetail>(`/api/agents/${agentId}/status`),
 }

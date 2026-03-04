@@ -18,11 +18,12 @@ function buildTree(files: FileInfo[]): TreeNode[] {
   const root: TreeNode[] = []
 
   for (const file of files) {
-    const parts = file.path.split('/')
+    const parts = file.path.split('/').filter(Boolean)
+    if (parts.length === 0) continue
     let current = root
 
     for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
+      const part = parts[i] ?? ''
       const isLast = i === parts.length - 1
       const existing = current.find((node) => node.name === part)
 

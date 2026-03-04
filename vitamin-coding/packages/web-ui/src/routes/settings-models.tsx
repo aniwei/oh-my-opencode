@@ -4,7 +4,7 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { modelsApi } from '../services/models-api'
 import { useSettingsStore } from '../stores/settings-store'
-import type { ModelInfo } from '../types/api'
+import type { ModelInfo, ModelsResponse } from '../types/api'
 
 interface ProviderConfig {
   id: string
@@ -24,12 +24,19 @@ const PROVIDER_OPTIONS = [
 export function SettingsModelsPage() {
   const { defaultModelId, setDefaultModelId } = useSettingsStore()
   const [models, setModels] = useState<ModelInfo[]>([])
+  const [source, setSource] = useState<ModelsResponse['source']>('registry')
   const [providers, setProviders] = useState<ProviderConfig[]>([])
 
   useEffect(() => {
     modelsApi.list()
-      .then((result) => setModels(result.models))
-      .catch(() => setModels([]))
+      .then((result) => {
+        setModels(result.models)
+        setSource(result.source ?? 'registry')
+      })
+      .catch(() => {
+        setModels([])
+        setSource('fallback')
+      })
   }, [])
 
   const addProvider = useCallback(() => {
@@ -72,7 +79,12 @@ export function SettingsModelsPage() {
         <Stack gap="sm">
           <Group justify="space-between">
             <Text fw={600}>可用模型</Text>
-            <Text c="dimmed" size="xs">{models.length} 个模型</Text>
+            <Group gap={8}>
+              <Text c="dimmed" size="xs">{models.length} 个模型</Text>
+              {source === 'fallback' ? (
+                <Text c="yellow" size="xs">fallback</Text>
+              ) : null}
+            </Group>
           </Group>
           {models.map((model) => (
             <Group key={model.id} justify="space-between">

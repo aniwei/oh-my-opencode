@@ -13,6 +13,11 @@ export interface ModelInfo {
   supportsVision: boolean
 }
 
+export interface ModelsResponse {
+  models: ModelInfo[]
+  source?: 'registry' | 'fallback'
+}
+
 export interface ClientConfig {
   theme: 'light' | 'dark'
   features: string[]

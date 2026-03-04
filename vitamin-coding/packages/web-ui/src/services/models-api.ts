@@ -1,6 +1,10 @@
 import { apiClient } from './api-client'
-import type { ModelInfo } from '../types/api'
+import { mockBackend } from './mock-backend'
+import { isMockApiEnabled } from './mock-mode'
+import type { ModelsResponse } from '../types/api'
 
 export const modelsApi = {
-  list: () => apiClient.get<{ models: ModelInfo[] }>('/api/models'),
+  list: () => isMockApiEnabled()
+    ? mockBackend.listModels()
+    : apiClient.get<ModelsResponse>('/api/models'),
 }
