@@ -32,7 +32,7 @@ for await (const event of stream) {
 | Export | Description |
 |--------|-------------|
 | `createVitaminAgent` | Main factory for creating an embeddable agent |
-| `createAgentStream`, `AgentStreamImpl` | Async iterable stream of agent events |
+| `createAgentStream`, `AgentStream` | Async iterable stream of agent events |
 | `createRpcServer` | JSON-RPC server for inter-process hosting |
 | `createRpcClient` | JSON-RPC client for inter-process connection |
 

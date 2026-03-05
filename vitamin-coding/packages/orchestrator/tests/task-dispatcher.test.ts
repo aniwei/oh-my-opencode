@@ -135,13 +135,13 @@ describe('TaskDispatcher', () => {
       it('#then succeeds normally', async () => {
         const dispatcher = createTestDispatcher([
           createMockRegistration('prometheus'),
-          createMockRegistration('sisyphus'),
+          createMockRegistration('central-secretariat'),
         ])
 
         const handle = await dispatcher.dispatch({
           prompt: 'test',
           subagent: 'prometheus',
-          parentAgent: 'sisyphus',
+          parentAgent: 'central-secretariat',
         })
         const result = await handle.getResult()
 

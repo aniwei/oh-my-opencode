@@ -10,28 +10,28 @@ const CallAgentArgsSchema = z.object({
 
 type CallAgentArgs = z.infer<typeof CallAgentArgsSchema>
 
-export type CallAgentFn = (agent: string, prompt: string) => Promise<{
+export type CallAgent = (agent: string, prompt: string) => Promise<{
   success: boolean
   output?: string
   error?: string
 }>
 
-export function createCallAgentTool(callFn?: CallAgentFn): AgentTool<CallAgentArgs> {
+export function createCallAgentTool(call?: CallAgent): AgentTool<CallAgentArgs> {
   return {
-    name: 'call-agent',
+    name: 'call_agent',
     description: '直接调用指定 Agent 并等待结果。适用于需要特定 Agent 能力的场景。',
     parameters: CallAgentArgsSchema as unknown as import('@vitamin/ai').ZodType<CallAgentArgs>,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
-      if (!callFn) {
+      if (!call) {
         return {
-          content: [{ type: 'text', text: 'call-agent not available: agent system not initialized' }],
+          content: [{ type: 'text', text: 'call_agent not available: agent system not initialized' }],
           isError: true,
         }
       }
 
-      const result = await callFn(args.agent, args.prompt)
+      const result = await call(args.agent, args.prompt)
       if (result.success) {
         return { content: [{ type: 'text', text: result.output ?? '(no output)' }] }
       }

@@ -11,23 +11,23 @@ const TaskCreateArgsSchema = z.object({
 
 type TaskCreateArgs = z.infer<typeof TaskCreateArgsSchema>
 
-export type CreateTaskFn = (args: { prompt: string; category?: string; subagent?: string }) => Promise<{
+export type CreateTask = (args: { prompt: string; category?: string; subagent?: string }) => Promise<{
   taskId: string
 }>
 
-export function createTaskCreateTool(createFn?: CreateTaskFn): AgentTool<TaskCreateArgs> {
+export function createTaskCreateTool(create?: CreateTask): AgentTool<TaskCreateArgs> {
   return {
-    name: 'task-create',
+    name: 'task_create',
     description: '创建一个后台任务。',
     parameters: TaskCreateArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskCreateArgs>,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
-      if (!createFn) {
-        return { content: [{ type: 'text', text: 'task-create not available' }], isError: true }
+      if (!create) {
+        return { content: [{ type: 'text', text: 'task_create not available' }], isError: true }
       }
 
-      const result = await createFn({
+      const result = await create({
         prompt: args.prompt,
         category: args.category,
         subagent: args.subagent,

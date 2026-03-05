@@ -9,26 +9,26 @@ const BackgroundCancelArgsSchema = z.object({
 
 type BackgroundCancelArgs = z.infer<typeof BackgroundCancelArgsSchema>
 
-export type CancelBackgroundFn = (taskId: string) => Promise<boolean>
+export type CancelBackground = (taskId: string) => Promise<boolean>
 
 export function createBackgroundCancelTool(
-  cancelFn?: CancelBackgroundFn,
+  cancel?: CancelBackground,
 ): AgentTool<BackgroundCancelArgs> {
   return {
-    name: 'background-cancel',
+    name: 'background_cancel',
     description: '取消一个正在运行的后台任务。',
     parameters: BackgroundCancelArgsSchema as unknown as import('@vitamin/ai').ZodType<BackgroundCancelArgs>,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
-      if (!cancelFn) {
+      if (!cancel) {
         return {
           content: [{ type: 'text', text: 'background-cancel not available' }],
           isError: true,
         }
       }
 
-      const cancelled = await cancelFn(args.taskId)
+      const cancelled = await cancel(args.taskId)
       return {
         content: [{
           type: 'text',

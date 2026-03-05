@@ -16,7 +16,7 @@ const DelegateTaskArgsSchema = z.object({
 type DelegateTaskArgs = z.infer<typeof DelegateTaskArgsSchema>
 
 // 任务委派函数类型（由 orchestrator 注入）
-export type TaskDispatchFn = (args: {
+export type TaskDispatch = (args: {
   prompt: string
   subagent?: string
   category?: string
@@ -31,27 +31,27 @@ export interface TaskDispatchResult {
 }
 
 export function createDelegateTaskTool(
-  dispatchFn?: TaskDispatchFn,
+  dispatch?: TaskDispatch,
 ): AgentTool<DelegateTaskArgs> {
   return {
-    name: 'delegate-task',
+    name: 'delegate_task',
     description: '委派任务给子 Agent 执行。可指定 Agent 名称或任务类别。',
     parameters: DelegateTaskArgsSchema as unknown as import('@vitamin/ai').ZodType<DelegateTaskArgs>,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
-      if (!dispatchFn) {
+      if (!dispatch) {
         return {
           content: [{
             type: 'text',
-            text: 'delegate-task is not available: orchestrator not initialized',
+            text: 'delegate_task is not available: orchestrator not initialized',
           }],
           isError: true,
         }
       }
 
       try {
-        const result = await dispatchFn({
+        const result = await dispatch({
           prompt: args.prompt,
           subagent: args.subagent,
           category: args.category,

@@ -57,7 +57,7 @@ function createMockSubsystems(overrides?: {
   let sessionCounter = 0
 
   const mockRegistration: AgentRegistration = {
-    name: 'sisyphus',
+    name: 'central-secretariat',
     factory: (_model, _tools, options) => {
       overrides?.onFactoryOptions?.(options)
       return createMockAgentInstance(agentOutput)
@@ -99,7 +99,7 @@ function createMockSubsystems(overrides?: {
       },
     },
     agentRegistry: {
-      find: (name: string) => (hasAgent && name === 'sisyphus' ? mockRegistration : undefined),
+      find: (name: string) => (hasAgent && name === 'central-secretariat' ? mockRegistration : undefined),
       getAvailable: () => (hasAgent ? [mockRegistration] : []),
       getAll: () => (hasAgent ? [mockRegistration] : []),
     },

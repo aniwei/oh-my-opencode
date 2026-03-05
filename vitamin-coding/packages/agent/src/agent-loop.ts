@@ -5,13 +5,13 @@ import { AbortError, MaxToolTurnsError } from './errors'
 
 import type { AssistantMessage, StreamContext, ToolDefinition } from '@vitamin/ai'
 import type { ToolExecutor } from './tool-executor'
-import type { AgentEvent, AgentLoopConfig, AgentMessage, AgentTool } from './types'
+import type { AgentEvent, AgentLoopConfig, AgentMessage, AgentStatus, AgentTool } from './types'
 
 // Agent 循环的发射器类型
 type EmitFn = (event: AgentEvent) => void
 
 // 流式调用函数类型（由外部注入，解耦 ProviderRegistry）
-export type StreamFn = (
+export type StreamFunction = (
   context: StreamContext,
   signal: AbortSignal,
 ) => AsyncIterable<import('@vitamin/ai').StreamEvent> & { result(): Promise<AssistantMessage> }
@@ -21,23 +21,31 @@ export interface AgentLoopOptions {
   messages: AgentMessage[]
   config: AgentLoopConfig
   toolExecutor: ToolExecutor
-  streamFn: StreamFn
+  stream?: StreamFunction
   signal: AbortSignal
   emit: EmitFn
+  initialStatus?: AgentStatus
 }
 
 // 运行 Agent 双层循环
 export async function agentLoop(options: AgentLoopOptions): Promise<AssistantMessage> {
-  const { messages, config, toolExecutor, streamFn, signal, emit } = options
+  const { messages, config, toolExecutor, signal, emit } = options
+  const stream = options.stream ?? options.stream
+  if (!stream) {
+    throw new Error('Agent loop requires stream function via options.stream')
+  }
+
   let lastAssistantMessage: AssistantMessage | null = null
   let toolTurnCount = 0
   let turnIndex = 0
+  let currentStatus: AgentStatus = options.initialStatus ?? 'idle'
 
   // 外循环: FollowUp 处理
   while (true) {
     if (signal.aborted) throw new AbortError()
 
-    emit({ type: 'status_change', from: 'idle', to: 'streaming' })
+    emit({ type: 'status_change', from: currentStatus, to: 'streaming' })
+    currentStatus = 'streaming'
 
     // 内循环: 工具调用 + Steering
     while (true) {
@@ -74,7 +82,7 @@ export async function agentLoop(options: AgentLoopOptions): Promise<AssistantMes
       }
 
       // 5. 流式调用 LLM（通过注入的 streamFn）
-      const eventStream = streamFn(streamContext, signal)
+      const eventStream = stream(streamContext, signal)
 
       // 消费流事件
       for await (const event of eventStream) {
@@ -94,9 +102,10 @@ export async function agentLoop(options: AgentLoopOptions): Promise<AssistantMes
       if (hasToolCalls(assistantMessage)) {
         emit({
           type: 'status_change',
-          from: 'streaming',
+          from: currentStatus,
           to: 'tool_executing',
         })
+        currentStatus = 'tool_executing'
 
         const toolCalls = getToolCalls(assistantMessage)
 
@@ -148,9 +157,10 @@ export async function agentLoop(options: AgentLoopOptions): Promise<AssistantMes
         // 工具执行完毕，回到 streaming
         emit({
           type: 'status_change',
-          from: 'tool_executing',
+          from: currentStatus,
           to: 'streaming',
         })
+        currentStatus = 'streaming'
 
         continue // 有工具结果 → 继续让 LLM 响应
       }

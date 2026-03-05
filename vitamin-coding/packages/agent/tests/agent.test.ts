@@ -127,7 +127,7 @@ describe('Agent', () => {
 
   describe('#given an idle agent', () => {
     describe('#when abort() is called from idle', () => {
-      it('#then emits abort event but status stays idle (no valid transition)', () => {
+      it('#then emits abort event and transitions to aborted', () => {
         const agent = new Agent({
           model: makeModel(),
           systemPrompt: 'test',
@@ -137,10 +137,9 @@ describe('Agent', () => {
         agent.on((e) => events.push(e))
 
         agent.abort()
-        // idle → aborted 不在 VALID_TRANSITIONS 中, 但 abort 事件仍被发射
         expect(events.some((e) => e.type === 'abort')).toBe(true)
-        // status 不变（transition 静默跳过非法转换）
-        expect(agent.status).toBe('idle')
+        expect(events.some((e) => e.type === 'status_change')).toBe(true)
+        expect(agent.status).toBe('aborted')
       })
     })
   })
@@ -173,7 +172,7 @@ describe('Agent', () => {
         const events: AgentEvent[] = []
         const unsub = agent.on((e) => events.push(e))
 
-        // abort 从 idle: 发射 abort 事件（不含 status_change 因为转换无效）
+        // abort 从 idle: 发射 abort + status_change 事件
         agent.abort()
         const countBefore = events.length
         expect(countBefore).toBeGreaterThan(0)

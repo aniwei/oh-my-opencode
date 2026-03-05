@@ -5,11 +5,11 @@ import type { StreamEvent } from './types'
 // 创建 AgentStream
 export function createAgentStream(
   executor: (push: (event: StreamEvent) => void, done: () => void, signal: AbortSignal) => Promise<AgentSessionResult>,
-): AgentStreamImpl {
-  return new AgentStreamImpl(executor)
+): AgentStream {
+  return new AgentStream(executor)
 }
 
-export class AgentStreamImpl {
+export class AgentStream {
   private events: StreamEvent[] = []
   private pendingResolvers: Array<(value: IteratorResult<StreamEvent>) => void> = []
   private finished = false

@@ -95,7 +95,7 @@ export async function cleanupTempDir(dir: string): Promise<void> {
 // 创建默认的 sisyphus 注册
 export function registerStubSisyphus(subsystems: Subsystems, output = '回复'): void {
   subsystems.agentRegistry.register({
-    name: 'sisyphus',
+    name: 'central-secretariat',
     factory: createStubAgentFactory(() => output),
     mode: 'primary',
     metadata: {

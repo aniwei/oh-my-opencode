@@ -3,7 +3,7 @@ import type { AgentPromptMetadata } from '../types'
 
 // Agent 模型优先级链 (来源: DEVELOPMENT-SPEC.md §S7.8)
 export const AGENT_MODEL_PRIORITY: Record<string, string[]> = {
-  sisyphus: ['claude-opus-4-6', 'gpt-5.2', 'kimi-k2.5', 'gemini-3.1-pro'],
+  'central-secretariat': ['claude-opus-4-6', 'gpt-5.2', 'kimi-k2.5', 'gemini-3.1-pro'],
   hephaestus: ['gpt-5.3-codex', 'claude-opus-4-6', 'gemini-3.1-pro', 'copilot-sonnet'],
   prometheus: ['claude-opus-4-6', 'gpt-5.2', 'kimi-k2.5', 'gemini-3.1-pro'],
   oracle: ['gpt-5.2(high)', 'claude-opus-4-6', 'gemini-3.1-pro'],
@@ -27,108 +27,108 @@ export const AGENT_TOOL_RESTRICTIONS: Record<string, { allowed?: string[]; denie
 
 // Agent 元数据定义 (来源: DEVELOPMENT-SPEC.md §S7.5)
 export const AGENT_METADATA: Record<string, AgentPromptMetadata> = {
-  sisyphus: {
+  'central-secretariat': {
     category: 'orchestrator',
     cost: 'EXPENSIVE',
     triggers: [
-      { domain: 'general', trigger: 'default orchestrator for complex tasks' },
+      { domain: 'general', trigger: '默认复杂任务编排器' },
     ],
-    useWhen: ['complex multi-step tasks', 'tasks requiring delegation'],
+    useWhen: ['复杂多步骤任务', '需要委派的任务'],
     executionMode: 'sync',
   },
   hephaestus: {
     category: 'specialist',
     cost: 'EXPENSIVE',
     triggers: [
-      { domain: 'code', trigger: 'refactor|redesign|implement|build' },
+      { domain: 'code', trigger: '重构|重新设计|实现|构建' },
     ],
-    useWhen: ['deep implementation work', 'large refactoring'],
+    useWhen: ['深度实现工作', '大型重构'],
     executionMode: 'both',
   },
   explore: {
     category: 'exploration',
     cost: 'CHEAP',
     triggers: [
-      { domain: 'search', trigger: 'find|search|locate|where|which' },
+      { domain: 'search', trigger: '查找|搜索|定位|哪里|哪个' },
     ],
-    useWhen: ['codebase exploration', 'finding files or patterns'],
-    avoidWhen: ['tasks requiring writes'],
+    useWhen: ['代码库探索', '查找文件或模式'],
+    avoidWhen: ['需要写入的任务'],
     executionMode: 'both',
   },
   oracle: {
     category: 'advisor',
     cost: 'MODERATE',
     triggers: [
-      { domain: 'strategy', trigger: 'explain|analyze|review|evaluate' },
+      { domain: 'strategy', trigger: '解释|分析|审查|评估' },
     ],
-    useWhen: ['strategic analysis', 'code review', 'architecture decisions'],
-    avoidWhen: ['tasks requiring writes'],
+    useWhen: ['策略分析', '代码审查', '架构决策'],
+    avoidWhen: ['需要写入的任务'],
     executionMode: 'sync',
   },
   librarian: {
     category: 'exploration',
     cost: 'CHEAP',
     triggers: [
-      { domain: 'knowledge', trigger: 'documentation|api|library|docs' },
+      { domain: 'knowledge', trigger: '文档|API|库|文档' },
     ],
-    useWhen: ['external knowledge lookup', 'API documentation'],
-    avoidWhen: ['tasks requiring writes'],
+    useWhen: ['外部知识查找', 'API 文档'],
+    avoidWhen: ['需要写入的任务'],
     executionMode: 'both',
   },
   'sisyphus-junior': {
     category: 'utility',
     cost: 'CHEAP',
     triggers: [
-      { domain: 'quick', trigger: 'quick|simple|small|fast' },
+      { domain: 'quick', trigger: '快速|简单|小型|快速' },
     ],
-    useWhen: ['quick category tasks', 'small independent tasks'],
+    useWhen: ['快速类别任务', '小型独立任务'],
     executionMode: 'both',
   },
   prometheus: {
     category: 'specialist',
     cost: 'EXPENSIVE',
     triggers: [
-      { domain: 'planning', trigger: 'plan|design|architect|propose' },
+      { domain: 'planning', trigger: '计划|设计|架构|提议' },
     ],
-    useWhen: ['complex task planning', 'structured plan generation'],
-    avoidWhen: ['simple tasks', 'direct implementation'],
+    useWhen: ['复杂任务规划', '结构化计划生成'],
+    avoidWhen: ['简单任务', '直接实现'],
     executionMode: 'sync',
   },
   momus: {
     category: 'advisor',
     cost: 'MODERATE',
     triggers: [
-      { domain: 'review', trigger: 'review|validate|approve' },
+      { domain: 'review', trigger: '审查|验证|批准' },
     ],
-    useWhen: ['plan review', 'quality gate checks'],
+    useWhen: ['计划审查', '质量门检查'],
     executionMode: 'sync',
   },
   metis: {
     category: 'advisor',
     cost: 'MODERATE',
     triggers: [
-      { domain: 'analysis', trigger: 'analyze|assess|evaluate|complexity' },
+      { domain: 'analysis', trigger: '分析|评估|评价|复杂性' },
     ],
-    useWhen: ['pre-planning analysis', 'complexity assessment'],
+    useWhen: ['规划前分析', '复杂性评估'],
     executionMode: 'sync',
   },
   atlas: {
     category: 'orchestrator',
     cost: 'MODERATE',
     triggers: [
-      { domain: 'execution', trigger: 'execute|start-work|run-plan' },
+      { domain: 'execution', trigger: '执行|开始工作|运行计划' },
     ],
-    useWhen: ['plan execution', 'parallel task orchestration'],
-    avoidWhen: ['tasks without a plan'],
+    useWhen: ['计划执行', '并行任务编排'],
+    avoidWhen: ['没有计划的任务'],
     executionMode: 'sync',
   },
   'multimodal-looker': {
     category: 'utility',
     cost: 'MODERATE',
     triggers: [
-      { domain: 'visual', trigger: 'screenshot|image|look|visual|UI' },
+      { domain: 'visual', trigger: '截图|图像|查看|视觉|UI' },
     ],
-    useWhen: ['screenshot analysis', 'visual inspection', 'UI verification'],
+    useWhen: ['截图分析', '视觉检查', 'UI 验证'],
     executionMode: 'sync',
   },
 }

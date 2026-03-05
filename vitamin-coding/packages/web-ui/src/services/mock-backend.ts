@@ -48,7 +48,7 @@ const mockModels: ModelsResponse = {
 
 const mockAgents: AgentInfo[] = [
   {
-    id: 'sisyphus',
+    id: 'central-secretariat',
     name: 'Sisyphus',
     description: '通用主代理，擅长分解任务与执行编码工作。',
     capabilities: ['planning', 'coding', 'tool-use'],

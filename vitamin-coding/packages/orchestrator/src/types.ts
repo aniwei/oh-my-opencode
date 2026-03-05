@@ -79,7 +79,7 @@ export interface TaskHandle {
 
 // ═══ 任务调度 ═══
 
-export interface TaskDispatcher {
+export interface Dispatcher {
   dispatch(request: TaskRequest): Promise<TaskHandle>
 }
 

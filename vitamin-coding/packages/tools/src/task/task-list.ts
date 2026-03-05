@@ -11,22 +11,22 @@ const TaskListArgsSchema = z.object({
 
 type TaskListArgs = z.infer<typeof TaskListArgsSchema>
 
-export type ListTasksFn = (status?: string) => Promise<Array<{
+export type ListTasks = (status?: string) => Promise<Array<{
   taskId: string
   status: string
   prompt: string
 }>>
 
-export function createTaskListTool(listFn?: ListTasksFn): AgentTool<TaskListArgs> {
+export function createTaskListTool(listFn?: ListTasks): AgentTool<TaskListArgs> {
   return {
-    name: 'task-list',
+    name: 'task_list',
     description: '列出所有任务及其状态。',
     parameters: TaskListArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskListArgs>,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
       if (!listFn) {
-        return { content: [{ type: 'text', text: 'task-list not available' }], isError: true }
+        return { content: [{ type: 'text', text: 'task_list not available' }], isError: true }
       }
 
       const filter = args.status === 'all' ? undefined : args.status

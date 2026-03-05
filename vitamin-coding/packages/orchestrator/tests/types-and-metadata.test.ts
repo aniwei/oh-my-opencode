@@ -32,7 +32,7 @@ describe('isPlanFamily', () => {
   describe('#given non Plan Family agent names', () => {
     describe('#when checking', () => {
       it('#then returns false for sisyphus', () => {
-        expect(isPlanFamily('sisyphus')).toBe(false)
+        expect(isPlanFamily('central-secretariat')).toBe(false)
       })
 
       it('#then returns false for hephaestus', () => {
@@ -109,7 +109,7 @@ describe('AGENT_METADATA', () => {
   describe('#given metadata map', () => {
     describe('#when checking required agents', () => {
       it('#then has metadata for 6 core agents', () => {
-        const requiredAgents = ['sisyphus', 'hephaestus', 'explore', 'oracle', 'librarian', 'sisyphus-junior']
+        const requiredAgents = ['central-secretariat', 'hephaestus', 'explore', 'oracle', 'librarian', 'sisyphus-junior']
         for (const name of requiredAgents) {
           expect(AGENT_METADATA[name]).toBeDefined()
           expect(AGENT_METADATA[name].category).toBeDefined()

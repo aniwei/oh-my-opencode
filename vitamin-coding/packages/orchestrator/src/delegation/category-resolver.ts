@@ -12,7 +12,7 @@ const DEFAULT_CATEGORY_MAP: Record<string, string> = {
   quick: 'sisyphus-junior',
   debug: 'hephaestus',
   test: 'hephaestus',
-  general: 'sisyphus',
+  general: 'central-secretariat',
 }
 
 export interface CategoryResolverOptions {

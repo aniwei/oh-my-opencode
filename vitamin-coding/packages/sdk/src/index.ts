@@ -4,7 +4,7 @@
 export { createVitaminAgent } from './create-agent'
 
 // AgentStream
-export { createAgentStream, AgentStreamImpl } from './agent-stream'
+export { createAgentStream, AgentStream } from './agent-stream'
 
 // RPC
 export { createRpcServer } from './rpc-server'
@@ -19,7 +19,6 @@ export type {
   VitaminAgentState,
   ConversationHandle,
   StreamEvent,
-  AgentStream,
   RPCRequest,
   RPCResponse,
   RPCError,

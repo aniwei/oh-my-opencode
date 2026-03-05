@@ -34,7 +34,7 @@ export class WebSocketHub {
       })
 
       ws.on('message', (data) => {
-        // Handle incoming WS messages (e.g. steer commands, debugging requests)
+        // 仅用于调试，实际消息处理逻辑视需求而定
         try {
           const msg = JSON.parse(data.toString())
           logger.debug({ msg }, 'WS message received')

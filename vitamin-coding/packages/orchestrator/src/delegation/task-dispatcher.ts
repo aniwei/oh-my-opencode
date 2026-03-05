@@ -7,7 +7,7 @@ import type {
   AgentFactoryOptions,
   AgentRegistration,
   AgentResult,
-  TaskDispatcher,
+  Dispatcher,
   TaskHandle,
   TaskRequest,
   TaskStatus,
@@ -90,7 +90,7 @@ function createSyncTaskHandle(taskId: string): {
   }
 }
 
-export class TaskDispatcherImpl implements TaskDispatcher {
+export class TaskDispatcher implements Dispatcher {
   private readonly registry: AgentRegistry
   private readonly categoryResolver: CategoryResolver
   private readonly backgroundManager: BackgroundManager
@@ -223,6 +223,6 @@ export class TaskDispatcherImpl implements TaskDispatcher {
   }
 }
 
-export function createTaskDispatcher(options: TaskDispatcherOptions): TaskDispatcher {
-  return new TaskDispatcherImpl(options)
+export function createTaskDispatcher(options: TaskDispatcherOptions): Dispatcher {
+  return new TaskDispatcher(options)
 }

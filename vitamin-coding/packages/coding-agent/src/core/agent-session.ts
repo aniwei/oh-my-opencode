@@ -225,8 +225,8 @@ export async function createAgentSession(
         let inputTokens = 0
         let outputTokens = 0
 
-        // 获取当前 agent（默认使用 sisyphus）
-        const agentRegistration = subsystems.agentRegistry.find('sisyphus')
+        // 获取当前 agent（默认使用 central-secretariat）
+        const agentRegistration = subsystems.agentRegistry.find('central-secretariat')
 
         if (agentRegistration) {
           const model = createPlaceholderModel(state.currentModel)

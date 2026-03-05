@@ -11,10 +11,10 @@ pnpm add @vitamin/orchestrator
 ## Usage
 
 ```typescript
-import { createAgentRegistry, createTaskDispatcher, createSisyphusAgent } from '@vitamin/orchestrator'
+import { createAgentRegistry, createTaskDispatcher, createCentralSecretariatAgent } from '@vitamin/orchestrator'
 
 const registry = createAgentRegistry()
-registry.register(createSisyphusAgent())
+registry.register(createCentralSecretariatAgent())
 
 const dispatcher = createTaskDispatcher({ registry })
 const handle = await dispatcher.dispatch({
@@ -35,7 +35,7 @@ const handle = await dispatcher.dispatch({
 
 ### Agent Factories (14)
 
-`createSisyphusAgent`, `createHephaestusAgent`, `createExploreAgent`, `createOracleAgent`, `createLibrarianAgent`, `createSisyphusJuniorAgent`, `createMetisAgent`, `createMomusAgent`, `createMultimodalLookerAgent`, `createPrometheusAgent`, `createAtlasAgent`
+`createCentralSecretariatAgent`, `createHephaestusAgent`, `createExploreAgent`, `createOracleAgent`, `createLibrarianAgent`, `createSisyphusJuniorAgent`, `createMetisAgent`, `createMomusAgent`, `createMultimodalLookerAgent`, `createPrometheusAgent`, `createAtlasAgent`
 
 ### Plan/Build Utilities
 

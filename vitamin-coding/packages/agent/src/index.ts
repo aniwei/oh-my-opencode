@@ -10,7 +10,7 @@ export type { AgentFactoryConfig } from './agent-factory'
 
 // Agent 循环
 export { agentLoop } from './agent-loop'
-export type { StreamFn, AgentLoopOptions } from './agent-loop'
+export type { StreamFunction, AgentLoopOptions } from './agent-loop'
 
 // 工具执行器
 export { createToolExecutor } from './tool-executor'

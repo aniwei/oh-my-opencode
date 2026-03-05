@@ -13,6 +13,7 @@ export class AgentRegistry {
     if (this.agents.has(registration.name)) {
       log.warn(`Agent "${registration.name}" already registered, overwriting`)
     }
+    
     this.agents.set(registration.name, registration)
     log.debug(`Agent registered: ${registration.name} (mode=${registration.mode})`)
   }

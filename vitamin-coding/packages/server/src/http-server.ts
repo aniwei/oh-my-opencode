@@ -60,20 +60,20 @@ export class InspectorServer {
   }
 
   private setupRoutes() {
-    // Inspector Frontend Serve
+    // Inspector Web UI 静态资源（内置于 dist/inspector）
     this.app.use('/', express.static(new URL('../dist/inspector', import.meta.url).pathname))
-    // Health check
+    // 健康检查接口
     this.app.get('/api/health', (_req, res) => {
       res.json({ status: 'ok' })
     })
 
-    // Log Replay API
+    // 日志回放接口
     this.app.get('/api/logs', createLogReplayRoute(this.options.logHub))
 
-    // Log SSE Stream
+    // 日志实时流接口
     this.app.get('/api/logs/stream', createLogStreamRoute(this.options.logHub))
 
-    // Session and Agent APIs
+    // 会话和代理接口
     this.app.use('/api/sessions', createSessionsRouter(this.options.sessionManager))
     this.app.post('/api/sessions/:id/messages', createMessageEndpoint({}))
     this.app.post('/api/sessions/:id/messages/:mid/stop', createStopEndpoint({}))
@@ -98,19 +98,14 @@ export class InspectorServer {
   public async start(): Promise<void> {
     const host = this.options.host ?? '127.0.0.1'
     return new Promise((resolve) => {
-      this.httpServer.listen(this.port, host, () => {
-        resolve()
-      })
+      this.httpServer.listen(this.port, host, () => resolve())
     })
   }
 
   public async close(): Promise<void> {
     this.wsHub.close()
     return new Promise((resolve, reject) => {
-      this.httpServer.close((err) => {
-        if (err) reject(err)
-        else resolve()
-      })
+      this.httpServer.close((err) => err ? reject(err) : resolve())
     })
   }
 }

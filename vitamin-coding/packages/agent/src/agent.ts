@@ -6,7 +6,7 @@ import { AbortError } from './errors'
 import { createToolExecutor } from './tool-executor'
 
 import type { AssistantMessage, Message as LlmMessage, Model, ThinkingLevel } from '@vitamin/ai'
-import type { StreamFn } from './agent-loop'
+import type { StreamFunction } from './agent-loop'
 import type {
   AgentConfig,
   AgentEvent,
@@ -28,12 +28,12 @@ type AgentEvents = {
 
 // Agent 状态合法转换表
 const VALID_TRANSITIONS: Record<AgentStatus, Set<AgentStatus>> = {
-  idle: new Set(['streaming']),
+  idle: new Set(['streaming', 'aborted', 'error']),
   streaming: new Set(['tool_executing', 'completed', 'aborted', 'error']),
   tool_executing: new Set(['streaming', 'aborted', 'error']),
-  completed: new Set(['streaming', 'idle']),
-  error: new Set(['idle']),
-  aborted: new Set(['streaming', 'idle']),
+  completed: new Set(['streaming', 'idle', 'aborted', 'error']),
+  error: new Set(['idle', 'aborted']),
+  aborted: new Set(['streaming', 'idle', 'error']),
 }
 
 export class Agent {
@@ -42,10 +42,10 @@ export class Agent {
   private abortController: AbortController | null = null
   private steeringQueue: AgentMessage[] = []
   private followUpQueue: AgentMessage[] = []
-  private readonly streamFn: StreamFn | undefined
+  private readonly stream: StreamFunction | undefined
 
   constructor(config: AgentConfig) {
-    this.streamFn = config.streamFn as StreamFn | undefined
+    this.stream = config.stream as StreamFunction | undefined
     this.state = {
       status: 'idle',
       systemPrompt: config.systemPrompt,
@@ -197,16 +197,17 @@ export class Agent {
 
     const toolExecutor = createToolExecutor(this.state.tools)
 
-    // 构建 streamFn — 优先使用外部注入，否则使用默认
-    const streamFn: StreamFn = this.streamFn ?? createDefaultStreamFn()
+    // 构建 stream — 优先使用外部注入，否则使用默认
+    const stream: StreamFunction = this.stream ?? createDefaultStream()
 
     try {
       const result = await agentLoop({
         messages: this.state.messages,
         config: loopConfig,
         toolExecutor,
-        streamFn,
+        stream,
         signal,
+        initialStatus: this.state.status,
         emit: (event: AgentEvent) => this.handleLoopEvent(event),
       })
 
@@ -301,11 +302,9 @@ function defaultConvertToLlm(messages: AgentMessage[]) {
 }
 
 // 默认 streamFn — 抛错提示需要注入
-function createDefaultStreamFn(): StreamFn {
+function createDefaultStream(): StreamFunction {
   return () => {
-    throw new Error(
-      'No streamFn provided. Pass a streamFn in AgentConfig or use createAgent with a ProviderRegistry.',
-    )
+    throw new Error('No stream funcntion provided. Pass a stream in AgentConfig or use createAgent with a ProviderRegistry.')
   }
 }
 

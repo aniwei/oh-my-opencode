@@ -232,7 +232,7 @@ isDagFinished(dag): boolean
 validateDagNoCycles(dag): boolean
 
 // 13 个 Agent 工厂
-createSisyphusAgent()    // 主 Agent
+createCentralSecretariatAgent()    // 主 Agent
 createExploreAgent()     // 代码探索
 createOracleAgent()      // 知识查询
 createPrometheusAgent()  // 计划生成

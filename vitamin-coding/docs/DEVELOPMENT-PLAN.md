@@ -796,7 +796,7 @@ Layer 7 (SDK层)     ▼
 
 **实现约束**（详见 [DEVELOPMENT-SPEC.md §S12](DEVELOPMENT-SPEC.md#s12-vitamincoding-agent-实现规范)）：
 
-- **7 步初始化序列**（强制顺序）：parseCLI → loadConfig → initSubsystems(7 并行) → createAgentSession → selectMode → loadResources → enterMainLoop（参考 §S12.1）
+- **7 步初始化序列**（强制顺序）：parseCLI → loadConfig → createSubsystems(7 并行) → createAgentSession → selectMode → loadResources → enterMainLoop（参考 §S12.1）
 - **System Prompt 6 层结构**：身份 + 委派表 + 工具列表 + 项目上下文 + Active Skills + Category 信息（参考 §S12.2）
 - **Chat Loop 核心流程**：input → Extension 拦截 → 斜杠命令 → Skill 展开 → Hook:before → Agent.prompt() → Hook:after → persist → 费用统计（参考 §S12.3）
 - **冷启动目标**：< 2s（到可输入状态）

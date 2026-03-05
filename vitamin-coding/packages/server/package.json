@@ -16,7 +16,8 @@
   "scripts": {
     "dev:inspector": "vite",
     "build:inspector": "tsc -p tsconfig.inspector.json && vite build",
-    "build": "tsup",
+    "build:server": "tsup",
+    "build": "pnpm run build:server && pnpm run build:inspector",
     "typecheck:project": "tsc -p tsconfig.json --noEmit",
     "typecheck:file": "tsc src/index.ts --noEmit --target ES2024 --module ESNext --moduleResolution bundler --esModuleInterop --skipLibCheck",
     "typecheck": "tsc --noEmit",

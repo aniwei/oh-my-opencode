@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
-// A simple sliding window rate limiter
+// 简单的内存中速率限制器，适用于单实例部署
 const requests = new Map<string, number[]>()
 
 export function rateLimit(windowMs: number, maxRequests: number) {
@@ -12,7 +12,6 @@ export function rateLimit(windowMs: number, maxRequests: number) {
       requests.set(ip, [])
     }
 
-    // Evict old timestamps
     const timestamps = requests.get(ip) || []
     const windowStart = now - windowMs
     const recent = timestamps.filter((ts) => ts > windowStart)

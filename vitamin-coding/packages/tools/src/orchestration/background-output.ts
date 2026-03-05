@@ -9,30 +9,30 @@ const BackgroundOutputArgsSchema = z.object({
 
 type BackgroundOutputArgs = z.infer<typeof BackgroundOutputArgsSchema>
 
-export type GetBackgroundOutputFn = (taskId: string) => Promise<{
+export type GetBackgroundOutput = (taskId: string) => Promise<{
   status: string
   output?: string
   error?: string
 }>
 
 export function createBackgroundOutputTool(
-  getOutputFn?: GetBackgroundOutputFn,
+  getOutput?: GetBackgroundOutput,
 ): AgentTool<BackgroundOutputArgs> {
   return {
-    name: 'background-output',
+    name: 'background_output',
     description: '获取后台任务的当前状态和输出。',
     parameters: BackgroundOutputArgsSchema as unknown as import('@vitamin/ai').ZodType<BackgroundOutputArgs>,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
-      if (!getOutputFn) {
+      if (!getOutput) {
         return {
-          content: [{ type: 'text', text: 'background-output not available: background manager not initialized' }],
+          content: [{ type: 'text', text: 'background_output not available: background manager not initialized' }],
           isError: true,
         }
       }
 
-      const result = await getOutputFn(args.taskId)
+      const result = await getOutput(args.taskId)
       const text = [
         `Task: ${args.taskId}`,
         `Status: ${result.status}`,

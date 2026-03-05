@@ -2,7 +2,7 @@
 import {
   createVitaminAgent,
   createAgentStream,
-  AgentStreamImpl,
+  AgentStream,
   createRpcServer,
   createRpcClient,
 } from '../src/index'
@@ -34,8 +34,8 @@ describe('SDK 导出完整性', () => {
         expect(typeof createAgentStream).toBe('function')
       })
 
-      it('#then AgentStreamImpl 存在且为构造函数', () => {
-        expect(typeof AgentStreamImpl).toBe('function')
+      it('#then AgentStream 存在且为构造函数', () => {
+        expect(typeof AgentStream).toBe('function')
       })
 
       it('#then createRpcServer 存在且为函数', () => {

@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { extractTextContent, wrapAgent } from '../src/agents/agent-adapter'
-import { createSisyphusAgent } from '../src/agents/sisyphus'
+import { createCentralSecretariatAgent } from '../src/agents/sisyphus'
 import { createHephaestusAgent } from '../src/agents/hephaestus'
 import { createExploreAgent } from '../src/agents/explore'
 import { createOracleAgent } from '../src/agents/oracle'
@@ -182,7 +182,7 @@ const DUMMY_TOOLS: AgentTool[] = []
 
 describe('agent factories', () => {
   const factories = [
-    { name: 'createSisyphusAgent', fn: createSisyphusAgent, defaultTurns: 50 },
+    { name: 'createCentralSecretariatAgent', fn: createCentralSecretariatAgent, defaultTurns: 50 },
     { name: 'createHephaestusAgent', fn: createHephaestusAgent, defaultTurns: 80 },
     { name: 'createExploreAgent', fn: createExploreAgent, defaultTurns: 30 },
     { name: 'createOracleAgent', fn: createOracleAgent, defaultTurns: 30 },

@@ -84,7 +84,7 @@ const TOOL_AGENT_MAP: Record<string, string> = {
   find: 'explore',
   ls: 'explore',
   'ast-grep': 'explore, oracle',
-  'delegate-task': 'sisyphus',
+  'delegate-task': 'central-secretariat',
 }
 
 export function buildToolSelectionTable(

@@ -26,7 +26,7 @@ import {
   createOracleAgent,
   createPlanStorage,
   createPrometheusAgent,
-  createSisyphusAgent,
+  createCentralSecretariatAgent,
   createSisyphusJuniorAgent,
   createTaskDispatcher,
   executePlan,
@@ -117,7 +117,7 @@ function createPlaceholderModel(modelId?: string): Model {
 }
 
 const BUILTIN_AGENT_FACTORIES: Record<string, AgentFactory> = {
-  sisyphus: createSisyphusAgent,
+  'central-secretariat': createCentralSecretariatAgent,
   hephaestus: createHephaestusAgent,
   explore: createExploreAgent,
   oracle: createOracleAgent,
@@ -141,11 +141,11 @@ function registerBuiltinAgents(registry: ReturnType<typeof createAgentRegistry>)
     const registration: AgentRegistration = {
       name,
       factory,
-      mode: name === 'sisyphus' ? 'all' : 'subagent',
+      mode: name === 'central-secretariat' ? 'all' : 'subagent',
       metadata,
       modelPriority: AGENT_MODEL_PRIORITY[name] ?? [normalizeModelId('claude-sonnet')],
       toolRestrictions: AGENT_TOOL_RESTRICTIONS[name],
-      disableable: name !== 'sisyphus',
+      disableable: name !== 'central-secretariat',
       enabled: true,
     }
 
@@ -209,7 +209,7 @@ async function loadVitaminConfig(options: CLIOptions) {
 }
 
 // Step 3: 初始化子系统（并行初始化无依赖的子系统）
-async function initSubsystems(config: unknown, options: CLIOptions): Promise<Subsystems> {
+async function createSubsystems(config: unknown, options: CLIOptions): Promise<Subsystems> {
   const providerRegistry = createDefaultProviderRegistry()
   const toolRegistry = createToolRegistry()
   const hookEngine = createHookEngine()
@@ -230,8 +230,7 @@ async function initSubsystems(config: unknown, options: CLIOptions): Promise<Sub
     categoryResolver,
     backgroundManager,
     resolveModel: (_registration) => createPlaceholderModel(),
-    resolveTools: (registration) =>
-      resolveToolsForRegistration(registration, toolRegistry.getAll()),
+    resolveTools: (registration) => resolveToolsForRegistration(registration, toolRegistry.getAll()),
     defaultFactoryOptions: {
       providerRegistry,
     },
@@ -241,7 +240,7 @@ async function initSubsystems(config: unknown, options: CLIOptions): Promise<Sub
 
   // 注册内置工具
   registerBuiltinTools(toolRegistry, options.projectDir, {
-    taskDispatchFn: async ({ prompt, subagent, category, mode }) => {
+    taskDispatch: async ({ prompt, subagent, category, mode }: { prompt: string, subagent: string, category: string, mode: 'sync' | 'background' }) => {
       const handle = await taskDispatcher.dispatch({
         prompt,
         subagent,
@@ -264,7 +263,7 @@ async function initSubsystems(config: unknown, options: CLIOptions): Promise<Sub
         }
       }
     },
-    startWorkFn: async (planName) => {
+    startWork: async (planName: string) => {
       const plan = await planStorage.load(planName)
       if (!plan) {
         return { success: false, message: `未找到计划：${planName}` }
@@ -286,7 +285,7 @@ async function initSubsystems(config: unknown, options: CLIOptions): Promise<Sub
         ].join(' '),
       }
     },
-    getBackgroundOutputFn: async (taskId) => {
+    getBackgroundOutput: async (taskId: string) => {
       const handle = backgroundTasks.get(taskId)
       if (!handle) {
         return { status: 'not_found', error: '未找到任务' }
@@ -311,13 +310,13 @@ async function initSubsystems(config: unknown, options: CLIOptions): Promise<Sub
 
       return { status }
     },
-    cancelBackgroundFn: async (taskId) => {
+    cancelBackground: async (taskId: string) => {
       const handle = backgroundTasks.get(taskId)
       if (!handle) return false
       handle.cancel()
       return true
     },
-    callAgentFn: async (agent, prompt) => {
+    callAgent: async (agent: string, prompt: string) => {
       try {
         const handle = await taskDispatcher.dispatch({
           prompt,
@@ -409,8 +408,8 @@ export async function main(options: CLIOptions): Promise<void> {
     // Step 2: loadConfig
     const config = await loadVitaminConfig(options)
 
-    // Step 3: initSubsystems
-    const subsystems = await initSubsystems(config, options)
+    // Step 3: createSubsystems
+    const subsystems = await createSubsystems(config, options)
 
     // Step 4: createAgentSession
     const session = await createAgentSession(subsystems, options)

@@ -125,7 +125,7 @@ describe('E2E 全链路集成', () => {
 
       // 注册 stub agent
       subsystems.agentRegistry.register({
-        name: 'sisyphus',
+        name: 'central-secretariat',
         factory: createStubAgentFactory(() => '这是一个测试回复'),
         mode: 'primary',
         metadata: {
@@ -329,7 +329,7 @@ describe('E2E 全链路集成', () => {
       const subsystems = await createTestSubsystems(projectDir)
 
       subsystems.agentRegistry.register({
-        name: 'sisyphus',
+        name: 'central-secretariat',
         factory: createStubAgentFactory(() => '回复'),
         mode: 'primary',
         metadata: { category: 'orchestrator', cost: 'MODERATE', triggers: [], executionMode: 'sync' },
@@ -444,7 +444,7 @@ describe('E2E 全链路集成', () => {
       const subsystems = await createTestSubsystems(projectDir)
 
       subsystems.agentRegistry.register({
-        name: 'sisyphus',
+        name: 'central-secretariat',
         factory: createStubAgentFactory(() => '回复'),
         mode: 'primary',
         metadata: { category: 'orchestrator', cost: 'MODERATE', triggers: [], executionMode: 'sync' },
@@ -499,7 +499,7 @@ describe('E2E 全链路集成', () => {
       })
 
       subsystems.agentRegistry.register({
-        name: 'sisyphus',
+        name: 'central-secretariat',
         factory: createStubAgentFactory(() => '回复'),
         mode: 'primary',
         metadata: { category: 'orchestrator', cost: 'MODERATE', triggers: [], executionMode: 'sync' },

@@ -344,11 +344,11 @@ describe('full preset tools', () => {
 
         const result = await tool.execute('tc1', {
           prompt: '测试任务',
-          subagent: 'sisyphus',
+          subagent: 'central-secretariat',
         }, signal)
 
         expect(result.isError).toBeUndefined()
-        expect(calledWith).toEqual({ prompt: '测试任务', category: undefined, subagent: 'sisyphus' })
+        expect(calledWith).toEqual({ prompt: '测试任务', category: undefined, subagent: 'central-secretariat' })
         const text = result.content[0]?.type === 'text' ? result.content[0].text : ''
         expect(text).toContain('task-123')
       })

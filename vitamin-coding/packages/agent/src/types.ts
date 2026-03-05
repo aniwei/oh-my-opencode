@@ -4,6 +4,7 @@ import type {
   ImageContent,
   Message,
   Model,
+  StreamContext,
   StreamEvent,
   TextContent,
   ThinkingLevel,
@@ -79,12 +80,16 @@ export interface AgentLoopConfig {
   convertToLlm: (messages: AgentMessage[]) => Message[] | Promise<Message[]>
   // 上下文转换（压缩/裁剪/注入）
   transformContext?: (messages: AgentMessage[], signal?: AbortSignal) => Promise<AgentMessage[]>
+  
   // Steering 消息获取
   getSteeringMessages?: () => Promise<AgentMessage[]>
+  
   // FollowUp 消息获取
   getFollowUpMessages?: () => Promise<AgentMessage[]>
+  
   // API Key 动态获取
   getApiKey?: (provider: string) => Promise<string | undefined>
+  
   // 最大连续工具调用轮次（安全阀）
   maxToolTurns?: number
   // 思维级别
@@ -127,10 +132,10 @@ export interface AgentConfig {
   maxTokens?: number
   temperature?: number
   // 流式调用函数 — 由外部注入，解耦 ProviderRegistry
-  streamFn?: (
-    context: import('@vitamin/ai').StreamContext,
+  stream?: (
+    context: StreamContext,
     signal: AbortSignal,
-  ) => AsyncIterable<import('@vitamin/ai').StreamEvent> & {
+  ) => AsyncIterable<StreamEvent> & {
     result(): Promise<AssistantMessage>
   }
 }

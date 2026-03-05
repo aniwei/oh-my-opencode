@@ -9,26 +9,26 @@ const TaskGetArgsSchema = z.object({
 
 type TaskGetArgs = z.infer<typeof TaskGetArgsSchema>
 
-export type GetTaskFn = (taskId: string) => Promise<{
+export type GetTask = (taskId: string) => Promise<{
   taskId: string
   status: string
   output?: string
   error?: string
 } | undefined>
 
-export function createTaskGetTool(getFn?: GetTaskFn): AgentTool<TaskGetArgs> {
+export function createTaskGetTool(get?: GetTask): AgentTool<TaskGetArgs> {
   return {
-    name: 'task-get',
+    name: 'task_get',
     description: '获取任务的当前状态和结果。',
     parameters: TaskGetArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskGetArgs>,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
-      if (!getFn) {
-        return { content: [{ type: 'text', text: 'task-get not available' }], isError: true }
+      if (!get) {
+        return { content: [{ type: 'text', text: 'task_get not available' }], isError: true }
       }
 
-      const task = await getFn(args.taskId)
+      const task = await get(args.taskId)
       if (!task) {
         return { content: [{ type: 'text', text: `Task ${args.taskId} not found` }], isError: true }
       }

@@ -21,7 +21,7 @@ describe('E2E: SDK 对话全链路', () => {
       const subsystems = await createTestSubsystems(projectDir)
 
       subsystems.agentRegistry.register({
-        name: 'sisyphus',
+        name: 'central-secretariat',
         factory: createStubAgentFactory(() => '这是一个测试回复'),
         mode: 'primary',
         metadata: {
@@ -58,7 +58,7 @@ describe('E2E: SDK 对话全链路', () => {
       const subsystems = await createTestSubsystems(projectDir)
 
       subsystems.agentRegistry.register({
-        name: 'sisyphus',
+        name: 'central-secretariat',
         factory: createStubAgentFactory((msg) => `回复: ${msg}`),
         mode: 'primary',
         metadata: { category: 'orchestrator', cost: 'MODERATE', triggers: [], executionMode: 'sync' },

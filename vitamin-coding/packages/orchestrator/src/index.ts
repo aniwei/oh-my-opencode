@@ -14,7 +14,7 @@ export type {
   TaskRequest,
   TaskStatus,
   TaskHandle,
-  TaskDispatcher,
+  Dispatcher,
   PlanFamilyAgent,
 } from './types'
 export { PLAN_FAMILY, isPlanFamily } from './types'
@@ -26,7 +26,7 @@ export { AGENT_MODEL_PRIORITY, AGENT_TOOL_RESTRICTIONS, AGENT_METADATA } from '.
 // 委派调度
 export { CategoryResolver, createCategoryResolver } from './delegation/category-resolver'
 export type { CategoryResolverOptions } from './delegation/category-resolver'
-export { TaskDispatcherImpl, createTaskDispatcher } from './delegation/task-dispatcher'
+export { TaskDispatcher, createTaskDispatcher } from './delegation/task-dispatcher'
 export type { TaskDispatcherOptions } from './delegation/task-dispatcher'
 export { executeSyncTask } from './delegation/execution-modes'
 export type { BackgroundExecutor } from './delegation/execution-modes'
@@ -39,7 +39,7 @@ export type { BackgroundManagerOptions } from './background/background-manager'
 export {
   wrapAgent,
   extractTextContent,
-  createSisyphusAgent,
+  createCentralSecretariatAgent,
   createHephaestusAgent,
   createExploreAgent,
   createOracleAgent,

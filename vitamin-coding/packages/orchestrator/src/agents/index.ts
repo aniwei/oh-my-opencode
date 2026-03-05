@@ -1,6 +1,6 @@
 // Agent 工厂导出
 export { wrapAgent, extractTextContent } from './agent-adapter'
-export { createSisyphusAgent } from './sisyphus'
+export { createCentralSecretariatAgent } from './central-secretariat'
 export { createHephaestusAgent } from './hephaestus'
 export { createExploreAgent } from './explore'
 export { createOracleAgent } from './oracle'

@@ -1581,7 +1581,7 @@ onResize(cols, rows):
 main(argv):
   1. parseCLI(argv)         → CLIOptions
   2. loadConfig(cliOptions) → VitaminConfig    (S2 规范)
-  3. initSubsystems:
+  3. createSubsystems:
      ├── ModelRegistry.init()       // 加载模型数据库
      ├── ToolRegistry.init(preset)  // 注册工具 (S5 规范)
      ├── HookEngine.init()          // 注册 Hooks (S6 规范)
