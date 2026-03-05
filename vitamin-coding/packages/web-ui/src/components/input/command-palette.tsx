@@ -84,7 +84,7 @@ export function CommandPalette(props: CommandPaletteProps) {
             p={6}
             style={{
               borderRadius: 6,
-              background: index === selected ? 'var(--mantine-color-dark-5)' : 'transparent',
+              background: index === selected ? 'var(--mantine-primary-color-light)' : 'transparent',
             }}
           >
             <Group gap="xs" wrap="nowrap">

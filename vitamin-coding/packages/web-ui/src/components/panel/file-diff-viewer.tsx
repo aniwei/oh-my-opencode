@@ -1,4 +1,5 @@
-import { Box, Paper, ScrollArea, Text } from '@mantine/core'
+import { Box, Paper, ScrollArea, Text, useMantineTheme } from '@mantine/core'
+import type { VitaminColorTokens } from '@vitamin/ui-kit'
 
 interface FileDiffViewerProps {
   diff: string
@@ -31,15 +32,25 @@ function parseDiffLines(diff: string): DiffLine[] {
   })
 }
 
-const LINE_COLORS: Record<DiffLine['type'], { bg: string; color: string }> = {
-  add: { bg: 'rgba(81, 207, 102, 0.1)', color: '#51cf66' },
-  remove: { bg: 'rgba(255, 107, 107, 0.1)', color: '#ff6b6b' },
+const LINE_COLORS_LIGHT: Record<DiffLine['type'], { bg: string; color: string }> = {
+  add: { bg: 'rgba(23, 178, 106, 0.08)', color: '#079455' },
+  remove: { bg: 'rgba(240, 68, 56, 0.08)', color: '#d92d20' },
   context: { bg: 'transparent', color: 'inherit' },
-  header: { bg: 'rgba(91, 167, 252, 0.08)', color: 'var(--mantine-color-blue-4)' },
+  header: { bg: 'rgba(21, 90, 239, 0.06)', color: '#155aef' },
+}
+
+const LINE_COLORS_DARK: Record<DiffLine['type'], { bg: string; color: string }> = {
+  add: { bg: 'rgba(23, 178, 106, 0.14)', color: '#47cd89' },
+  remove: { bg: 'rgba(240, 68, 56, 0.14)', color: '#f97066' },
+  context: { bg: 'transparent', color: 'inherit' },
+  header: { bg: 'rgba(21, 90, 239, 0.1)', color: '#84abff' },
 }
 
 export function FileDiffViewer(props: FileDiffViewerProps) {
+  const theme = useMantineTheme()
+  const tokens = theme.other as VitaminColorTokens
   const lines = parseDiffLines(props.diff)
+  const lineColors = theme.colorScheme === 'dark' ? LINE_COLORS_DARK : LINE_COLORS_LIGHT
 
   if (lines.length === 0) {
     return (
@@ -50,12 +61,12 @@ export function FileDiffViewer(props: FileDiffViewerProps) {
   }
 
   return (
-    <Paper radius="md" withBorder style={{ overflow: 'hidden' }}>
-      <Text c="dimmed" size="xs" px="xs" py={4}>Unified Diff</Text>
+    <Paper radius="md" style={{ overflow: 'hidden', border: `1px solid ${tokens.divider.regular}` }}>
+      <Text size="xs" px="xs" py={4} style={{ color: tokens.text.tertiary }}>Unified Diff</Text>
       <ScrollArea.Autosize mah={400}>
         <Box style={{ fontFamily: 'var(--mantine-font-family-monospace)', fontSize: '0.8em' }}>
           {lines.map((line, index) => {
-            const style = LINE_COLORS[line.type]
+            const style = lineColors[line.type]
             return (
               <Box
                 key={index}

@@ -45,7 +45,7 @@ export function FileUpload(props: FileUploadProps) {
       }}
       onClick={() => inputRef.current?.click()}
       style={{
-        border: `2px dashed ${dragging ? 'var(--mantine-color-blue-6)' : 'var(--mantine-color-dark-4)'}`,
+        border: `2px dashed ${dragging ? 'var(--mantine-primary-color-filled)' : 'var(--mantine-color-default-border)'}`,
         borderRadius: 8,
         padding: 12,
         textAlign: 'center',

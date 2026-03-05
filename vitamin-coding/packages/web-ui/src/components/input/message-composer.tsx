@@ -13,7 +13,7 @@ export function MessageComposer(props: MessageComposerProps) {
       autosize
       maxRows={10}
       minRows={2}
-      placeholder="输入消息... (/ 触发命令面板)"
+      placeholder="Type a message... (/ for commands)"
       style={{ flex: 1 }}
       value={props.value}
       onChange={(event) => props.onChange(event.currentTarget.value)}

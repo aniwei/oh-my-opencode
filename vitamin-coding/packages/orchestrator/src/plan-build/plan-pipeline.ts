@@ -1,6 +1,6 @@
 // Plan Pipeline — 6 步完整管线 (§S14.1)
 // Metis(预分析) → Prometheus(生成计划) → Momus(审查) → Atlas(执行) → Hephaestus(迭代修复) → Oracle(验证)
-import type { AgentResult, TaskDispatcher, TaskRequest } from '../types'
+import type { AgentResult, Dispatcher, TaskRequest } from '../types'
 import type { Plan } from '../agents/prometheus/plan-format'
 import { markdownToPlan } from '../agents/prometheus/plan-format'
 import { parseMomusOutput } from '../agents/momus'
@@ -33,7 +33,7 @@ export interface PipelineResult {
 export interface PipelineOptions {
   maxRevisions?: number
   maxHephaestusIterations?: number
-  dispatcher: TaskDispatcher
+  dispatcher: Dispatcher
   storage: PlanStorage
   executeAfterApproval?: boolean
 }
@@ -259,7 +259,7 @@ export async function executePlanPipeline(
 
 // 分发给指定 Agent
 async function dispatchToAgent(
-  dispatcher: TaskDispatcher,
+  dispatcher: Dispatcher,
   request: Omit<TaskRequest, 'parentAgent'>,
 ): Promise<{ result?: AgentResult }> {
   try {
@@ -276,7 +276,7 @@ async function dispatchToAgent(
 
 // 生成计划
 async function generatePlan(
-  dispatcher: TaskDispatcher,
+  dispatcher: Dispatcher,
   userRequest: string,
   metisContext: string,
 ): Promise<string | undefined> {

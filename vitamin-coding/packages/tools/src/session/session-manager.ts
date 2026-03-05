@@ -11,14 +11,14 @@ const SessionManagerArgsSchema = z.object({
 
 type SessionManagerArgs = z.infer<typeof SessionManagerArgsSchema>
 
-export interface SessionManagerFns {
+export interface SessionManager {
   list: () => Promise<Array<{ id: string; title: string; messageCount: number }>>
   create: (title?: string) => Promise<{ id: string }>
   remove: (id: string) => Promise<boolean>
   compact: (id: string) => Promise<boolean>
 }
 
-export function createSessionManagerTool(fns?: SessionManagerFns): AgentTool<SessionManagerArgs> {
+export function createSessionManagerTool(fns?: SessionManager): AgentTool<SessionManagerArgs> {
   return {
     name: 'session-manager',
     description: '管理对话会话：列出、创建、删除、压缩会话。',

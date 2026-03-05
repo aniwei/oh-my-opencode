@@ -1,32 +1,67 @@
-import React, { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import {
+  Box,
+  Group,
+  ScrollArea,
+  Stack,
+  Text,
+  useMantineTheme,
+} from '@mantine/core'
+import { StatusBadge, type VitaminColorTokens } from '@vitamin/ui-kit'
 
-export const LogsConsole: React.FC = () => {
-  const [logs, setLogs] = useState<any[]>([])
+interface LogEntry {
+  timestamp: number
+  level: string
+  source: string
+  message: string
+  [key: string]: unknown
+}
+
+const LEVEL_COLORS: Record<string, string> = {
+  error: '#d93025',
+  fatal: '#d93025',
+  warn: '#f29900',
+  info: '#1e8e3e',
+  debug: '#1a73e8',
+  trace: '#80868b',
+}
+
+export function LogsConsole() {
+  const [logs, setLogs] = useState<LogEntry[]>([])
   const [connected, setConnected] = useState(false)
-  const logsEndRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const theme = useMantineTheme()
+  const tokens = theme.other as VitaminColorTokens
 
   useEffect(() => {
-    // Initial fetch
     fetch('/api/logs?since=0')
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data: LogEntry[]) => {
         setLogs(data)
-        setTimeout(() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+        setTimeout(() => {
+          viewportRef.current?.scrollTo({
+            top: viewportRef.current.scrollHeight,
+            behavior: 'smooth',
+          })
+        }, 100)
       })
-      .catch(e => console.error('Failed to fetch initial logs:', e))
+      .catch((e) => console.error('Failed to fetch initial logs:', e))
 
-    // Set up SSE
     const es = new EventSource('/api/logs/stream?level=debug')
-    
+
     es.onopen = () => setConnected(true)
     es.onerror = () => setConnected(false)
-    
+
     es.addEventListener('log', (e) => {
       try {
-        const log = JSON.parse(e.data)
-        setLogs(prev => [...prev, log].slice(-1000)) // Keep last 1000
-        // Auto scroll if near bottom
-        setTimeout(() => logsEndRef.current?.scrollIntoView({ behavior: 'auto' }), 50)
+        const log = JSON.parse(e.data) as LogEntry
+        setLogs((prev) => [...prev, log].slice(-1000))
+        setTimeout(() => {
+          viewportRef.current?.scrollTo({
+            top: viewportRef.current.scrollHeight,
+            behavior: 'auto',
+          })
+        }, 50)
       } catch (err) {
         console.error('Failed to parse log event', err)
       }
@@ -37,44 +72,99 @@ export const LogsConsole: React.FC = () => {
     }
   }, [])
 
-  const getLevelColor = (level: string) => {
-    switch(level) {
-      case 'error': case 'fatal': return '#d93025'
-      case 'warn': return '#f29900'
-      case 'info': return '#1e8e3e'
-      case 'debug': return '#1a73e8'
-      case 'trace': return '#80868b'
-      default: return '#5f6368'
+  const getExtraFields = (log: LogEntry): Record<string, unknown> => {
+    const excluded = new Set(['timestamp', 'level', 'source', 'message'])
+    const extras: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(log)) {
+      if (!excluded.has(k)) {
+        extras[k] = v
+      }
     }
+    return extras
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '8px', marginBottom: '8px' }}>
-        <h2 style={{ fontSize: '16px', margin: 0 }}>Logs Console</h2>
-        <span style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: connected ? '#1e8e3e' : '#d93025' }}></span>
-          {connected ? 'Live' : 'Disconnected'}
-        </span>
-      </div>
-      
-      <div style={{ flex: 1, overflowY: 'auto', fontFamily: 'monospace', fontSize: '13px', backgroundColor: '#1e1e1e', color: '#d4d4d4', padding: '8px', borderRadius: '4px' }}>
-        {logs.map((log, i) => (
-          <div key={i} style={{ padding: '2px 0', borderBottom: '1px solid #333', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-            <span style={{ color: '#858585', marginRight: '8px' }}>{new Date(log.timestamp).toLocaleTimeString()}</span>
-            <span style={{ color: getLevelColor(log.level), display: 'inline-block', width: '40px', fontWeight: 'bold' }}>{log.level.toUpperCase()}</span>
-            <span style={{ color: '#569cd6', marginRight: '8px' }}>[{log.source}]</span>
-            <span style={{ color: '#ce9178' }}>{log.message}</span>
-            {Object.keys(log).length > 4 && (
-               <span style={{ color: '#9cdcfe', marginLeft: '8px' }}>
-                 {JSON.stringify(Object.fromEntries(Object.entries(log).filter(([k]) => !['timestamp', 'level', 'source', 'message'].includes(k))))}
-               </span>
+    <Stack gap="md" h="100%">
+      <Group justify="space-between">
+        <Text size="lg" fw={600} c={tokens.text.primary}>
+          Logs Console
+        </Text>
+        <Group gap="xs">
+          <Box
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: connected ? tokens.text.success : tokens.text.destructive,
+            }}
+          />
+          <StatusBadge
+            variant={connected ? 'success' : 'error'}
+            label={connected ? 'Live' : 'Disconnected'}
+            size="xs"
+          />
+        </Group>
+      </Group>
+
+      <Box
+        style={{
+          flex: 1,
+          borderRadius: theme.radius.md,
+          background: '#1e1e1e',
+          overflow: 'hidden',
+        }}
+      >
+        <ScrollArea style={{ height: '100%' }} viewportRef={viewportRef}>
+          <Box p="xs" ff="monospace" style={{ fontSize: 13, color: '#d4d4d4' }}>
+            {logs.map((log, i) => {
+              const levelColor = LEVEL_COLORS[log.level] ?? '#5f6368'
+              const extras = getExtraFields(log)
+              const hasExtras = Object.keys(extras).length > 0
+
+              return (
+                <Box
+                  key={i}
+                  py={2}
+                  style={{
+                    borderBottom: '1px solid #333',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  <Text span size="xs" c="#858585" style={{ marginRight: 8 }}>
+                    {new Date(log.timestamp).toLocaleTimeString()}
+                  </Text>
+                  <Text
+                    span
+                    size="xs"
+                    fw={700}
+                    c={levelColor}
+                    style={{ display: 'inline-block', width: 44 }}
+                  >
+                    {log.level.toUpperCase()}
+                  </Text>
+                  <Text span size="xs" c="#569cd6" style={{ marginRight: 8 }}>
+                    [{log.source}]
+                  </Text>
+                  <Text span size="xs" c="#ce9178">
+                    {log.message}
+                  </Text>
+                  {hasExtras ? (
+                    <Text span size="xs" c="#9cdcfe" style={{ marginLeft: 8 }}>
+                      {JSON.stringify(extras)}
+                    </Text>
+                  ) : null}
+                </Box>
+              )
+            })}
+            {logs.length === 0 && (
+              <Text size="xs" c="#858585" fs="italic">
+                Waiting for logs...
+              </Text>
             )}
-          </div>
-        ))}
-        {logs.length === 0 && <div style={{ color: '#858585', fontStyle: 'italic' }}>Waiting for logs...</div>}
-        <div ref={logsEndRef} />
-      </div>
-    </div>
+          </Box>
+        </ScrollArea>
+      </Box>
+    </Stack>
   )
 }

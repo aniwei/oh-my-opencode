@@ -59,8 +59,8 @@ export function CodeBlock(props: CodeBlockProps) {
         <Code>{props.language || 'text'}</Code>
         <CopyButton value={props.code}>
           {({ copied, copy }) => (
-            <Tooltip label={copied ? '已复制' : '复制代码'} withArrow>
-              <ActionIcon aria-label="复制代码" variant="subtle" size="sm" onClick={copy}>
+            <Tooltip label={copied ? 'Copied' : 'Copy code'} withArrow>
+              <ActionIcon aria-label="Copy code" variant="subtle" size="sm" onClick={copy}>
                 {copied ? '✓' : '⧉'}
               </ActionIcon>
             </Tooltip>
@@ -73,7 +73,7 @@ export function CodeBlock(props: CodeBlockProps) {
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (
-        <pre style={{ margin: 0, overflowX: 'auto', padding: 12, borderRadius: 8, background: '#25262b' }}>
+        <pre style={{ margin: 0, overflowX: 'auto', padding: 12, borderRadius: 8, background: 'var(--mantine-color-body)' }}>
           <code>{props.code}</code>
         </pre>
       )}

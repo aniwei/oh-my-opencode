@@ -9,13 +9,13 @@ const SkillLoaderArgsSchema = z.object({
 
 type SkillLoaderArgs = z.infer<typeof SkillLoaderArgsSchema>
 
-export type LoadSkillFn = (path: string) => Promise<{
+export type LoadSkill = (path: string) => Promise<{
   success: boolean
   skillName?: string
   error?: string
 }>
 
-export function createSkillLoaderTool(loadFn?: LoadSkillFn): AgentTool<SkillLoaderArgs> {
+export function createSkillLoaderTool(loadFn?: LoadSkill): AgentTool<SkillLoaderArgs> {
   return {
     name: 'skill-loader',
     description: '从 SKILL.md 文件加载 Skill 定义。加载后可通过 skill-executor 执行。',

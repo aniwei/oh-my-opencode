@@ -20,7 +20,7 @@ export { createFindTool } from './builtin/find'
 export { createLsTool } from './builtin/ls'
 export { createAstGrepTool } from './builtin/ast-grep'
 export { createDelegateTaskTool } from './orchestration/delegate-task'
-export type { TaskDispatchFn, TaskDispatchResult } from './orchestration/delegate-task'
+export type { TaskDispatch, TaskDispatchResult } from './orchestration/delegate-task'
 
 // full 预设 - builtin 高级工具
 export { createEditDiffTool } from './builtin/edit-diff'
@@ -30,35 +30,35 @@ export { createHashlineEditTool, hashLine } from './builtin/hashline-edit'
 
 // full 预设 - 编排工具
 export { createStartWorkTool } from './orchestration/start-work'
-export type { StartWorkFn } from './orchestration/start-work'
+export type { StartWork } from './orchestration/start-work'
 export { createBackgroundOutputTool } from './orchestration/background-output'
-export type { GetBackgroundOutputFn } from './orchestration/background-output'
+export type { GetBackgroundOutput } from './orchestration/background-output'
 export { createBackgroundCancelTool } from './orchestration/background-cancel'
-export type { CancelBackgroundFn } from './orchestration/background-cancel'
+export type { CancelBackground } from './orchestration/background-cancel'
 export { createCallAgentTool } from './orchestration/call-agent'
-export type { CallAgentFn } from './orchestration/call-agent'
+export type { CallAgent } from './orchestration/call-agent'
 
 // full 预设 - Skill 工具
 export { createSkillExecutorTool } from './skill/skill-executor'
-export type { ExecuteSkillFn } from './skill/skill-executor'
+export type { ExecuteSkill } from './skill/skill-executor'
 export { createSkillMcpTool } from './skill/skill-mcp'
-export type { CallSkillMcpFn } from './skill/skill-mcp'
+export type { CallSkillMcp } from './skill/skill-mcp'
 export { createSkillLoaderTool } from './skill/skill-loader'
-export type { LoadSkillFn } from './skill/skill-loader'
+export type { LoadSkill } from './skill/skill-loader'
 
 // full 预设 - 会话管理
 export { createSessionManagerTool } from './session/session-manager'
-export type { SessionManagerFns } from './session/session-manager'
+export type { SessionManager } from './session/session-manager'
 
 // full 预设 - 任务管理
 export { createTaskCreateTool } from './task/task-create'
-export type { CreateTaskFn } from './task/task-create'
+export type { CreateTask } from './task/task-create'
 export { createTaskGetTool } from './task/task-get'
-export type { GetTaskFn } from './task/task-get'
+export type { GetTask } from './task/task-get'
 export { createTaskListTool } from './task/task-list'
-export type { ListTasksFn } from './task/task-list'
+export type { ListTasks } from './task/task-list'
 export { createTaskUpdateTool } from './task/task-update'
-export type { UpdateTaskFn } from './task/task-update'
+export type { UpdateTask } from './task/task-update'
 
 // 注册辅助
 export { registerBuiltinTools } from './register-builtin'

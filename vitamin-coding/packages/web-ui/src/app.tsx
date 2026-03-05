@@ -6,11 +6,12 @@ import { useMemo } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { AppRoutes } from './routes'
 import { useSettingsStore } from './stores/settings-store'
-import { theme } from './theme'
+import { getTheme } from './theme'
 
 export function App() {
   const { colorScheme } = useSettingsStore()
   const queryClient = useMemo(() => new QueryClient(), [])
+  const theme = useMemo(() => getTheme(colorScheme), [colorScheme])
 
   return (
     <QueryClientProvider client={queryClient}>

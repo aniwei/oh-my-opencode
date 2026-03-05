@@ -1,4 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import {
+  Box,
+  Checkbox,
+  Group,
+  Paper,
+  ScrollArea,
+  Stack,
+  Text,
+  UnstyledButton,
+  useMantineTheme,
+} from '@mantine/core'
+import { StatusBadge, type VitaminColorTokens } from '@vitamin/ui-kit'
 
 interface ThinkingEntry {
   id: string
@@ -8,11 +20,13 @@ interface ThinkingEntry {
   isStreaming: boolean
 }
 
-export const ThinkingLog: React.FC = () => {
+export function ThinkingLog() {
   const [entries, setEntries] = useState<ThinkingEntry[]>([])
   const [autoScroll, setAutoScroll] = useState(true)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const theme = useMantineTheme()
+  const tokens = theme.other as VitaminColorTokens
 
   useEffect(() => {
     let eventSource: EventSource | null = null
@@ -24,32 +38,29 @@ export const ThinkingLog: React.FC = () => {
         try {
           const data = JSON.parse((event as MessageEvent).data) as ThinkingEntry
           setEntries((prev) => {
-            // 更新已有的 streaming entry 或追加新条目
             const existing = prev.findIndex((e) => e.id === data.id)
             if (existing >= 0) {
               const updated = [...prev]
               updated[existing] = data
               return updated
             }
-            // 保留最近 200 条
             const next = [...prev, data]
             return next.length > 200 ? next.slice(-200) : next
           })
         } catch {
-          // 解析失败静默忽略
+          /* parse failure — silent */
         }
       })
     } catch {
-      // SSE 不可用时回退轮询
       const timer = setInterval(async () => {
         try {
           const res = await fetch('/api/logs?sources=thinking&limit=50')
           if (res.ok) {
-            const data = await res.json() as ThinkingEntry[]
+            const data = (await res.json()) as ThinkingEntry[]
             setEntries(data)
           }
         } catch {
-          // 忽略
+          /* polling failure — silent */
         }
       }, 3000)
 
@@ -62,8 +73,11 @@ export const ThinkingLog: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    if (autoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (autoScroll && viewportRef.current) {
+      viewportRef.current.scrollTo({
+        top: viewportRef.current.scrollHeight,
+        behavior: 'auto',
+      })
     }
   }, [entries, autoScroll])
 
@@ -80,57 +94,86 @@ export const ThinkingLog: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '8px', borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between' }}>
-        <h3 style={{ margin: 0 }}>Thinking Log</h3>
-        <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <input type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
-          自动滚动
-        </label>
-      </div>
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-        {entries.map((entry) => {
-          const isExpanded = expandedIds.has(entry.id)
-          const preview = entry.content.slice(0, 200)
-          const needsExpand = entry.content.length > 200
+    <Stack gap="md" h="100%">
+      <Group justify="space-between">
+        <Text size="lg" fw={600} c={tokens.text.primary}>
+          Thinking Log
+        </Text>
+        <Checkbox
+          size="xs"
+          label="Auto-scroll"
+          checked={autoScroll}
+          onChange={(e) => setAutoScroll(e.currentTarget.checked)}
+        />
+      </Group>
 
-          return (
-            <div
-              key={entry.id}
-              style={{
-                padding: '8px 12px',
-                marginBottom: '4px',
-                background: entry.isStreaming ? '#fffbeb' : '#f9fafb',
-                borderLeft: `3px solid ${entry.isStreaming ? '#f59e0b' : '#6366f1'}`,
-                borderRadius: '2px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#999' }}>
-                <span>{entry.agentId}</span>
-                <span>
-                  {new Date(entry.timestamp).toLocaleTimeString()}
-                  {entry.isStreaming && <span style={{ color: '#f59e0b', marginLeft: '6px' }}>● streaming</span>}
-                </span>
-              </div>
-              <pre style={{ margin: '4px 0 0', fontSize: '12px', whiteSpace: 'pre-wrap', color: '#374151' }}>
-                {isExpanded ? entry.content : preview}
-                {needsExpand && !isExpanded && '...'}
-              </pre>
-              {needsExpand && (
-                <button
-                  onClick={() => toggleExpanded(entry.id)}
-                  style={{ fontSize: '11px', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+      <ScrollArea style={{ flex: 1 }} viewportRef={viewportRef}>
+        <Stack gap={6}>
+          {entries.map((entry) => {
+            const isExpanded = expandedIds.has(entry.id)
+            const preview = entry.content.slice(0, 200)
+            const needsExpand = entry.content.length > 200
+
+            return (
+              <Paper
+                key={entry.id}
+                radius="sm"
+                p="sm"
+                style={{
+                  background: entry.isStreaming
+                    ? tokens.status.warningBg
+                    : tokens.bg.soft,
+                  borderLeft: `3px solid ${
+                    entry.isStreaming ? tokens.text.warning : tokens.brand[500]
+                  }`,
+                }}
+              >
+                <Group justify="space-between" mb={4}>
+                  <Text size="xs" c={tokens.text.tertiary} ff="monospace">
+                    {entry.agentId}
+                  </Text>
+                  <Group gap="xs">
+                    <Text size="xs" c={tokens.text.tertiary}>
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </Text>
+                    {entry.isStreaming ? (
+                      <StatusBadge variant="warning" label="streaming" size="xs" />
+                    ) : null}
+                  </Group>
+                </Group>
+
+                <Text
+                  size="xs"
+                  c={tokens.text.primary}
+                  ff="monospace"
+                  style={{ whiteSpace: 'pre-wrap' }}
                 >
-                  {isExpanded ? '收起' : '展开全部'}
-                </button>
-              )}
-            </div>
-          )
-        })}
-        {entries.length === 0 && (
-          <div style={{ color: '#999', textAlign: 'center', padding: '32px' }}>暂无 Thinking 日志</div>
-        )}
-      </div>
-    </div>
+                  {isExpanded ? entry.content : preview}
+                  {needsExpand && !isExpanded ? '...' : ''}
+                </Text>
+
+                {needsExpand ? (
+                  <UnstyledButton
+                    onClick={() => toggleExpanded(entry.id)}
+                    mt={4}
+                  >
+                    <Text size="xs" c={tokens.text.accent}>
+                      {isExpanded ? 'Collapse' : 'Show all'}
+                    </Text>
+                  </UnstyledButton>
+                ) : null}
+              </Paper>
+            )
+          })}
+          {entries.length === 0 && (
+            <Box py="xl" style={{ textAlign: 'center' }}>
+              <Text size="sm" c={tokens.text.placeholder}>
+                No thinking logs yet
+              </Text>
+            </Box>
+          )}
+        </Stack>
+      </ScrollArea>
+    </Stack>
   )
 }

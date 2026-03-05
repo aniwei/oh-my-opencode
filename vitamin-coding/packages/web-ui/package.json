@@ -20,6 +20,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@vitamin/ui-kit": "workspace:*",
     "@tanstack/react-query": "^5.90.3",
     "@tanstack/react-virtual": "^3.13.12",
     "@mantine/core": "^7.17.8",

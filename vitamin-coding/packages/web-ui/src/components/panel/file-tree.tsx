@@ -87,7 +87,7 @@ function TreeNodeComponent(props: TreeNodeComponentProps) {
         style={{
           paddingLeft: props.depth * 16 + 4,
           borderRadius: 4,
-          background: props.node.path === props.selectedPath ? 'var(--mantine-color-dark-5)' : 'transparent',
+          background: props.node.path === props.selectedPath ? 'var(--mantine-primary-color-light)' : 'transparent',
         }}
       >
         <Group gap={4} wrap="nowrap">

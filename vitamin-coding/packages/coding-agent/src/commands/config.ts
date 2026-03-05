@@ -1,5 +1,5 @@
-import { access, readFile, writeFile } from 'node:fs/promises'
 // `vitamin config` — 配置管理命令
+import { access, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { createLogger } from '@vitamin/shared'
@@ -128,7 +128,9 @@ export async function executeConfigCommand(projectDir: string, argsStr: string):
         process.stderr.write(`未找到 key "${args.key}"。\n`)
       } else {
         process.stdout.write(
-          typeof value === 'string' ? value + '\n' : JSON.stringify(value, null, 2) + '\n',
+          typeof value === 'string' 
+            ? value + '\n' 
+            : JSON.stringify(value, null, 2) + '\n',
         )
       }
       break

@@ -14,7 +14,7 @@ export function RightPanel(props: RightPanelProps) {
   return (
     <Tabs value={rightPanelTab} onChange={(value) => setRightPanelTab((value as 'files' | 'agent') ?? 'files')}>
       <Tabs.List>
-        <Tabs.Tab value="files">文件</Tabs.Tab>
+        <Tabs.Tab value="files">Files</Tabs.Tab>
         <Tabs.Tab value="agent">Agent</Tabs.Tab>
       </Tabs.List>
 

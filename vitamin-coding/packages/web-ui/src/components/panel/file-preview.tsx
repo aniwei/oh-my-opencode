@@ -15,7 +15,7 @@ export function FilePreview(props: FilePreviewProps) {
 
   return (
     <Paper radius="md" withBorder style={{ overflow: 'hidden' }}>
-      <Text fw={600} size="sm" px="xs" py={4} style={{ borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
+      <Text fw={600} size="sm" px="xs" py={4} style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
         {props.path}
       </Text>
       <ScrollArea.Autosize mah={300}>
@@ -31,7 +31,7 @@ export function FilePreview(props: FilePreviewProps) {
                   minWidth: gutterWidth,
                   padding: '0 8px',
                   userSelect: 'none',
-                  borderRight: '1px solid var(--mantine-color-dark-4)',
+                  borderRight: '1px solid var(--mantine-color-default-border)',
                 }}
               >
                 {index + 1}

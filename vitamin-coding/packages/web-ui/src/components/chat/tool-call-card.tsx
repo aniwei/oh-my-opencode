@@ -16,10 +16,10 @@ const STATUS_COLOR: Record<ToolCall['status'], string> = {
 }
 
 const STATUS_LABEL: Record<ToolCall['status'], string> = {
-  pending: '等待中',
-  running: '运行中',
-  success: '成功',
-  error: '失败',
+  pending: 'Pending',
+  running: 'Running',
+  success: 'Success',
+  error: 'Error',
 }
 
 export function ToolCallCard(props: ToolCallCardProps) {
@@ -61,13 +61,13 @@ export function ToolCallCard(props: ToolCallCardProps) {
             <Stack gap="xs" mt="xs">
               {props.tool.input !== undefined ? (
                 <Box>
-                  <Text c="dimmed" size="xs" mb={4}>输入参数</Text>
+                  <Text size="xs" style={{ color: 'var(--mantine-color-dimmed)' }} mb={4}>Input</Text>
                   <ToolResult output={props.tool.input} />
                 </Box>
               ) : null}
               {props.tool.output !== undefined ? (
                 <Box>
-                  <Text c="dimmed" size="xs" mb={4}>执行结果</Text>
+                  <Text size="xs" style={{ color: 'var(--mantine-color-dimmed)' }} mb={4}>Output</Text>
                   <ToolResult output={props.tool.output} />
                 </Box>
               ) : null}

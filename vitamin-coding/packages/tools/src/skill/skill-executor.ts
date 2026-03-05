@@ -11,13 +11,13 @@ const SkillExecutorArgsSchema = z.object({
 
 type SkillExecutorArgs = z.infer<typeof SkillExecutorArgsSchema>
 
-export type ExecuteSkillFn = (name: string, input?: string, params?: Record<string, string>) => Promise<{
+export type ExecuteSkill = (name: string, input?: string, params?: Record<string, string>) => Promise<{
   success: boolean
   output?: string
   error?: string
 }>
 
-export function createSkillExecutorTool(executeFn?: ExecuteSkillFn): AgentTool<SkillExecutorArgs> {
+export function createSkillExecutorTool(executeFn?: ExecuteSkill): AgentTool<SkillExecutorArgs> {
   return {
     name: 'skill-executor',
     description: '执行已加载的 Skill。Skill 是可复用的工作流模版。',

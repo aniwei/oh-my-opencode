@@ -24,9 +24,10 @@ export function parseCLI(argv: string[]): CLIOptions {
 // 完整解析（含子命令识别）
 export function parseCLIFull(argv: string[]): ParsedCLI {
   const args = argv.slice(2) // 跳过 node 和脚本路径
+
   let prompt: string | undefined
   let model: string | undefined
-  let mode: RunMode = 'interactive'
+  let mode: RunMode = 'print'
   let configPath: string | undefined
   let projectDir = process.cwd()
   let verbose = false
@@ -48,12 +49,13 @@ export function parseCLIFull(argv: string[]): ParsedCLI {
     subCommand = firstArg
     subCommandArgs = args.slice(1).join(' ')
 
-    // doctor/install/config/auth 不需要 prompt
+    // doctor / install / config / auth 不需要 prompt
     if (subCommand === 'run') {
       prompt = args
         .slice(1)
         .filter((a) => !a.startsWith('-'))
         .join(' ')
+
       mode = 'print'
     }
   }
@@ -108,12 +110,14 @@ export function parseCLIFull(argv: string[]): ParsedCLI {
         // --inspect 或 --inspect=<port>
         const inspectArg = args[i]
         const eqIndex = inspectArg?.indexOf('=')
+
         if (eqIndex !== undefined && eqIndex > 0) {
           const port = Number(inspectArg?.slice(eqIndex + 1))
           inspect = Number.isFinite(port) ? port : true
         } else {
           inspect = true
         }
+
         break
       }
       case '--help':
@@ -132,10 +136,12 @@ export function parseCLIFull(argv: string[]): ParsedCLI {
           if (prompt === undefined && mode === 'interactive') {
             mode = 'print'
           }
+
           prompt = prompt !== undefined ? prompt + ' ' + arg : arg
         }
         break
     }
+    
     i++
   }
 

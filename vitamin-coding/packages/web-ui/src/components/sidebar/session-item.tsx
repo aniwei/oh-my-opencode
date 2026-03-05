@@ -1,4 +1,5 @@
-import { ActionIcon, Group, Paper, Stack, Text } from '@mantine/core'
+import { ActionIcon, Group, Paper, Stack, Text, useMantineTheme } from '@mantine/core'
+import type { VitaminColorTokens } from '@vitamin/ui-kit'
 import type { SessionSummary } from '../../types/api'
 
 interface SessionItemProps {
@@ -9,6 +10,9 @@ interface SessionItemProps {
 }
 
 export function SessionItem(props: SessionItemProps) {
+  const theme = useMantineTheme()
+  const tokens = theme.other as VitaminColorTokens
+
   return (
     <Paper
       onClick={() => props.onSelect(props.session.id)}
@@ -16,7 +20,10 @@ export function SessionItem(props: SessionItemProps) {
       radius="md"
       style={{
         cursor: 'pointer',
-        border: props.active ? '1px solid var(--mantine-color-blue-6)' : '1px solid transparent',
+        background: props.active ? tokens.state.accentHover : 'transparent',
+        border: props.active
+          ? `1px solid ${tokens.brand[500]}`
+          : `1px solid transparent`,
       }}
     >
       <Group justify="space-between" wrap="nowrap">

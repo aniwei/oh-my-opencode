@@ -1,4 +1,5 @@
-import { Group, Image, Paper, Text } from '@mantine/core'
+import { Group, Image, Paper, Text, useMantineTheme } from '@mantine/core'
+import type { VitaminColorTokens } from '@vitamin/ui-kit'
 import type { ChatMessage } from '../../types/message'
 import { MarkdownRenderer } from './markdown-renderer'
 
@@ -7,13 +8,16 @@ interface UserMessageProps {
 }
 
 export function UserMessage(props: UserMessageProps) {
+  const theme = useMantineTheme()
+  const tokens = theme.other as VitaminColorTokens
+
   const hasMarkdown = props.message.content.includes('```') ||
     props.message.content.includes('**') ||
     props.message.content.includes('- ') ||
     props.message.content.includes('# ')
 
   return (
-    <Paper p="sm" radius="md" withBorder style={{ background: 'var(--mantine-color-dark-6)' }}>
+    <Paper p="sm" radius="md" shadow="xs" style={{ background: tokens.card.bg, border: `1px solid ${tokens.divider.regular}` }}>
       {hasMarkdown ? (
         <MarkdownRenderer content={props.message.content} />
       ) : (

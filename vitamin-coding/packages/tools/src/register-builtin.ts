@@ -27,35 +27,35 @@ import { createTaskListTool } from './task/task-list'
 import { createTaskUpdateTool } from './task/task-update'
 
 import type { ToolRegistry } from './tool-registry'
-import type { TaskDispatchFn } from './orchestration/delegate-task'
-import type { StartWorkFn } from './orchestration/start-work'
-import type { GetBackgroundOutputFn } from './orchestration/background-output'
-import type { CancelBackgroundFn } from './orchestration/background-cancel'
-import type { CallAgentFn } from './orchestration/call-agent'
-import type { ExecuteSkillFn } from './skill/skill-executor'
-import type { CallSkillMcpFn } from './skill/skill-mcp'
-import type { LoadSkillFn } from './skill/skill-loader'
-import type { SessionManagerFns } from './session/session-manager'
-import type { CreateTaskFn } from './task/task-create'
-import type { GetTaskFn } from './task/task-get'
-import type { ListTasksFn } from './task/task-list'
-import type { UpdateTaskFn } from './task/task-update'
+import type { TaskDispatch } from './orchestration/delegate-task'
+import type { StartWork } from './orchestration/start-work'
+import type { GetBackgroundOutput } from './orchestration/background-output'
+import type { CancelBackground } from './orchestration/background-cancel'
+import type { CallAgent } from './orchestration/call-agent'
+import type { ExecuteSkill } from './skill/skill-executor'
+import type { CallSkillMcp } from './skill/skill-mcp'
+import type { LoadSkill } from './skill/skill-loader'
+import type { SessionManager } from './session/session-manager'
+import type { CreateTask } from './task/task-create'
+import type { GetTask } from './task/task-get'
+import type { ListTasks } from './task/task-list'
+import type { UpdateTask } from './task/task-update'
 
 export interface RegisterBuiltinOptions {
   projectRoot: string
-  taskDispatchFn?: TaskDispatchFn
-  startWorkFn?: StartWorkFn
-  getBackgroundOutputFn?: GetBackgroundOutputFn
-  cancelBackgroundFn?: CancelBackgroundFn
-  callAgentFn?: CallAgentFn
-  executeSkillFn?: ExecuteSkillFn
-  callSkillMcpFn?: CallSkillMcpFn
-  loadSkillFn?: LoadSkillFn
-  sessionManagerFns?: SessionManagerFns
-  createTaskFn?: CreateTaskFn
-  getTaskFn?: GetTaskFn
-  listTasksFn?: ListTasksFn
-  updateTaskFn?: UpdateTaskFn
+  taskDispatch?: TaskDispatch
+  startWork?: StartWork
+  getBackgroundOutput?: GetBackgroundOutput
+  cancelBackground?: CancelBackground
+  callAgent?: CallAgent
+  executeSkill?: ExecuteSkill
+  callSkillMcp?: CallSkillMcp
+  loadSkill?: LoadSkill
+  sessionManager?: SessionManager
+  createTask?: CreateTask
+  getTask?: GetTask
+  listTasks?: ListTasks
+  updateTask?: UpdateTask
 }
 
 // 注册所有内置工具 (minimal + standard + full 预设)
@@ -120,7 +120,7 @@ export function registerBuiltinTools(
     builtin: true,
   })
 
-  registry.register(createDelegateTaskTool(options?.taskDispatchFn), {
+  registry.register(createDelegateTaskTool(options?.taskDispatch), {
     preset: 'standard',
     category: 'orchestration',
     builtin: true,
@@ -154,76 +154,76 @@ export function registerBuiltinTools(
   })
 
   // 编排工具
-  registry.register(createStartWorkTool(options?.startWorkFn), {
+  registry.register(createStartWorkTool(options?.startWork), {
     preset: 'full',
     category: 'orchestration',
     builtin: true,
   })
 
-  registry.register(createBackgroundOutputTool(options?.getBackgroundOutputFn), {
+  registry.register(createBackgroundOutputTool(options?.getBackgroundOutput), {
     preset: 'full',
     category: 'orchestration',
     builtin: true,
   })
 
-  registry.register(createBackgroundCancelTool(options?.cancelBackgroundFn), {
+  registry.register(createBackgroundCancelTool(options?.cancelBackground), {
     preset: 'full',
     category: 'orchestration',
     builtin: true,
   })
 
-  registry.register(createCallAgentTool(options?.callAgentFn), {
+  registry.register(createCallAgentTool(options?.callAgent), {
     preset: 'full',
     category: 'orchestration',
     builtin: true,
   })
 
   // Skill 工具
-  registry.register(createSkillExecutorTool(options?.executeSkillFn), {
+  registry.register(createSkillExecutorTool(options?.executeSkill), {
     preset: 'full',
     category: 'skill',
     builtin: true,
   })
 
-  registry.register(createSkillMcpTool(options?.callSkillMcpFn), {
+  registry.register(createSkillMcpTool(options?.callSkillMcp), {
     preset: 'full',
     category: 'skill',
     builtin: true,
   })
 
-  registry.register(createSkillLoaderTool(options?.loadSkillFn), {
+  registry.register(createSkillLoaderTool(options?.loadSkill), {
     preset: 'full',
     category: 'skill',
     builtin: true,
   })
 
   // 会话管理
-  registry.register(createSessionManagerTool(options?.sessionManagerFns), {
+  registry.register(createSessionManagerTool(options?.sessionManager), {
     preset: 'full',
     category: 'session',
     builtin: true,
   })
 
   // 任务管理
-  registry.register(createTaskCreateTool(options?.createTaskFn), {
+  registry.register(createTaskCreateTool(options?.createTask), {
     preset: 'full',
     category: 'task',
     builtin: true,
   })
 
-  registry.register(createTaskGetTool(options?.getTaskFn), {
+  registry.register(createTaskGetTool(options?.getTask), {
     preset: 'full',
     category: 'task',
     builtin: true,
   })
 
-  registry.register(createTaskListTool(options?.listTasksFn), {
+  registry.register(createTaskListTool(options?.listTasks), {
     preset: 'full',
     category: 'task',
     builtin: true,
   })
 
-  registry.register(createTaskUpdateTool(options?.updateTaskFn), {
+  registry.register(createTaskUpdateTool(options?.updateTask), {
     preset: 'full',
     category: 'task',
     builtin: true,

@@ -1,5 +1,5 @@
 // Plan Executor — Atlas 驱动的计划执行引擎 (§S14.1 Step 5)
-import type { TaskDispatcher } from '../types'
+import type { Dispatcher } from '../types'
 import type { Plan } from '../agents/prometheus/plan-format'
 import {
   buildDag,
@@ -24,7 +24,7 @@ export interface ExecutionProgressEvent {
 }
 
 export interface PlanExecutorOptions {
-  dispatcher: TaskDispatcher
+  dispatcher: Dispatcher
   storage: PlanStorage
   onProgress?: ProgressCallback
   maxConcurrency?: number
@@ -99,7 +99,7 @@ export async function executePlan(
 // 执行单个步骤
 async function executeStep(
   node: DagNode,
-  dispatcher: TaskDispatcher,
+  dispatcher: Dispatcher,
   dag: Map<string, DagNode>,
   onProgress?: ProgressCallback,
 ): Promise<void> {

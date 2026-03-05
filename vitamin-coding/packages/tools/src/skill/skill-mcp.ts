@@ -11,13 +11,13 @@ const SkillMcpArgsSchema = z.object({
 
 type SkillMcpArgs = z.infer<typeof SkillMcpArgsSchema>
 
-export type CallSkillMcpFn = (server: string, tool: string, args?: Record<string, unknown>) => Promise<{
+export type CallSkillMcp = (server: string, tool: string, args?: Record<string, unknown>) => Promise<{
   success: boolean
   result?: unknown
   error?: string
 }>
 
-export function createSkillMcpTool(callFn?: CallSkillMcpFn): AgentTool<SkillMcpArgs> {
+export function createSkillMcpTool(callFn?: CallSkillMcp): AgentTool<SkillMcpArgs> {
   return {
     name: 'skill-mcp',
     description: '调用 Skill 定义中声明的 MCP 服务器工具。',

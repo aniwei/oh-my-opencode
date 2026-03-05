@@ -1,12 +1,45 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import {
+  Box,
+  Group,
+  Paper,
+  ScrollArea,
+  Stack,
+  Table,
+  Text,
+  useMantineTheme,
+} from '@mantine/core'
+import { StatusBadge, type VitaminColorTokens } from '@vitamin/ui-kit'
 
-export const SessionExplorer: React.FC = () => {
-  const [sessions, setSessions] = useState<any[]>([])
-  
+interface Session {
+  id: string
+  status: string
+  createdAt?: number
+  agentCount?: number
+}
+
+function mapSessionStatus(status: string): 'success' | 'idle' | 'warning' | 'error' {
+  switch (status) {
+    case 'active':
+      return 'success'
+    case 'completed':
+      return 'idle'
+    case 'error':
+      return 'error'
+    default:
+      return 'idle'
+  }
+}
+
+export function SessionExplorer() {
+  const [sessions, setSessions] = useState<Session[]>([])
+  const theme = useMantineTheme()
+  const tokens = theme.other as VitaminColorTokens
+
   const fetchSessions = async () => {
     try {
       const res = await fetch('/api/sessions')
-      const data = await res.json()
+      const data = (await res.json()) as Session[]
       setSessions(data)
     } catch (e) {
       console.error('Failed to fetch sessions', e)
@@ -20,21 +53,83 @@ export const SessionExplorer: React.FC = () => {
   }, [])
 
   return (
-    <div>
-      <h2 style={{ fontSize: '16px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>Session Explorer</h2>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {sessions.map(s => (
-          <li key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f9f9f9' }}>
-            <span><strong style={{ fontFamily: 'monospace' }}>{s.id}</strong></span>
-            <span style={{ 
-              backgroundColor: s.status === 'active' ? '#e6f4ea' : '#f5f5f5', 
-              color: s.status === 'active' ? '#1e8e3e' : '#666',
-              padding: '2px 8px', borderRadius: '12px', fontSize: '12px' 
-            }}>{s.status.toUpperCase()}</span>
-          </li>
-        ))}
-        {sessions.length === 0 && <li style={{ padding: '8px 0', color: '#999' }}>No active sessions</li>}
-      </ul>
-    </div>
+    <Stack gap="md" h="100%">
+      <Group justify="space-between">
+        <Text size="lg" fw={600} c={tokens.text.primary}>
+          Session Explorer
+        </Text>
+        <Text size="xs" c={tokens.text.tertiary}>
+          {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+        </Text>
+      </Group>
+
+      <ScrollArea style={{ flex: 1 }}>
+        {sessions.length > 0 ? (
+          <Paper
+            radius="md"
+            withBorder
+            style={{
+              borderColor: tokens.divider.regular,
+              overflow: 'hidden',
+            }}
+          >
+            <Table
+              striped
+              highlightOnHover
+              verticalSpacing="sm"
+              horizontalSpacing="md"
+            >
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th style={{ color: tokens.text.tertiary }}>ID</Table.Th>
+                  <Table.Th style={{ color: tokens.text.tertiary }}>Status</Table.Th>
+                  <Table.Th style={{ color: tokens.text.tertiary }}>Created</Table.Th>
+                  <Table.Th style={{ color: tokens.text.tertiary }}>Agents</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {sessions.map((s) => (
+                  <Table.Tr key={s.id}>
+                    <Table.Td>
+                      <Text size="sm" ff="monospace" c={tokens.text.primary}>
+                        {s.id}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <StatusBadge
+                        variant={mapSessionStatus(s.status)}
+                        label={s.status.toUpperCase()}
+                        size="xs"
+                      />
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" c={tokens.text.secondary}>
+                        {s.createdAt
+                          ? new Date(s.createdAt).toLocaleString()
+                          : '-'}
+                      </Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm" c={tokens.text.secondary}>
+                        {s.agentCount ?? '-'}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Paper>
+        ) : (
+          <Box
+            py="xl"
+            style={{ textAlign: 'center' }}
+          >
+            <Text size="sm" c={tokens.text.placeholder}>
+              No active sessions
+            </Text>
+          </Box>
+        )}
+      </ScrollArea>
+    </Stack>
   )
 }

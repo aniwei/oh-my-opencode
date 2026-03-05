@@ -9,11 +9,11 @@ const MODEL_KEY = 'vitamin.webui.model'
 
 function readColorScheme(): ColorScheme {
   if (typeof localStorage === 'undefined') {
-    return 'dark'
+    return 'light'
   }
 
   const value = localStorage.getItem(THEME_KEY)
-  return value === 'light' ? 'light' : 'dark'
+  return value === 'dark' ? 'dark' : 'light'
 }
 
 function readShortcut(): SendShortcut {

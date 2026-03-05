@@ -15,8 +15,8 @@ export const defaultTheme = {
   textMuted: '#808080',
 
   // ─── Backgrounds ───
-  background: '#121212',
-  backgroundPanel: '#1f1f1f',
+  background: '#1f1f1f',
+  backgroundPanel: '#2c2c2e',
   backgroundElement: '#424242',
 
   // ─── Borders ───
