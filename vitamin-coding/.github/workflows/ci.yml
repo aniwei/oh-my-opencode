@@ -37,6 +37,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check package/docs sync
+        run: pnpm docs:check-package-sync
+
       - name: Typecheck
         run: pnpm typecheck
 

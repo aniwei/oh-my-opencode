@@ -36,7 +36,9 @@
 | 文档 | 说明 |
 |------|------|
 | [13-model-provider-opencode-alignment.md](13-model-provider-opencode-alignment.md) | Provider 体系对标 OpenCode 的设计与分阶段落地（首批含 Copilot） |
-| [14-tui-opencode-alignment.md](14-tui-opencode-alignment.md) | TUI 交互链路对标 OpenCode 的设计与分阶段落地 |
+| [14-tui-opencode-alignment.md](14-tui-opencode-alignment.md) | 交互层（interactive/server/web-ui）对标 OpenCode 的设计与分阶段落地 |
+| [15-opencode-pi-mono-integration-audit.md](15-opencode-pi-mono-integration-audit.md) | OpenCode + pi-mono 融合审计与文档重构蓝图 |
+| [16-dependency-stability-audit.md](16-dependency-stability-audit.md) | packages 依赖稳定性审计与成熟包替换建议 |
 
 ### 开发计划
 
@@ -49,6 +51,8 @@
 ## 快速导读
 
 - **架构评审者**：先读 [01](01-design-philosophy.md) → [02](02-monorepo-architecture.md) → [03](03-package-design.md) → [04](04-core-flows.md)
+- **融合审计（pi-mono + oh-my-opencode）**：先读 [08](08-pi-mono-fusion.md) 的 8.1.1 核验矩阵，再读 [14](14-tui-opencode-alignment.md)
+- **依赖治理（成熟包替换）**：读 [16](16-dependency-stability-audit.md)
 - **扩展开发者**：[05](05-extension-system.md) → [03](03-package-design.md)（重点 3.5~3.6）
 - **DevOps / SRE**：[09](09-cloud-deployment.md) → [06](06-engineering.md)
 - **试验性探索**：[10](10-experimental.md) → 分册 A/B/C

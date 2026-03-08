@@ -20,7 +20,7 @@
 - [S8. @vitamin/session 实现规范](#s8-vitaminsession-实现规范)
 - [S9. @vitamin/extension 实现规范](#s9-vitaminextension-实现规范)
 - [S10. @vitamin/mcp 实现规范](#s10-vitaminmcp-实现规范)
-- [S11. @vitamin/tui 实现规范](#s11-vitamintui-实现规范)
+- [S11. Interactive 交互层实现规范](#s11-interactive-交互层实现规范)
 - [S12. @vitamin/coding-agent 实现规范](#s12-vitamincoding-agent-实现规范)
 - [S13. @vitamin/sdk 实现规范](#s13-vitaminsdk-实现规范)
 - [S14. 跨模块集成 Spec](#s14-跨模块集成-spec)
@@ -177,7 +177,7 @@ const log = createLogger('ai:stream')
 
 ## S1. @vitamin/shared 实现规范
 
-> 来源：03-package-design.md §3.13, analysis/06
+> 来源：03-package-design.md §3.12, analysis/06
 
 ### S1.1 EventEmitter 类型安全实现
 
@@ -1493,7 +1493,7 @@ Skill 停用:
 
 ---
 
-## S11. @vitamin/tui 实现规范
+## S11. Interactive 交互层实现规范
 
 > 来源：03-package-design.md §3.10, analysis/08 (pi-mono pi-tui)
 
@@ -1573,7 +1573,7 @@ onResize(cols, rows):
 
 ## S12. @vitamin/coding-agent 实现规范
 
-> 来源：03-package-design.md §3.11, analysis/06, analysis/11
+> 来源：03-package-design.md §3.10, analysis/06, analysis/11
 
 ### S12.1 7 步初始化序列（强制顺序）
 
@@ -1697,7 +1697,7 @@ await hookEngine.execute('chat.message.before', { message: input })
 
 ## S13. @vitamin/sdk 实现规范
 
-> 来源：03-package-design.md §3.12, analysis/08 (pi-mono SDK)
+> 来源：03-package-design.md §3.11, analysis/08 (pi-mono SDK)
 
 ### S13.1 SDK 入口
 

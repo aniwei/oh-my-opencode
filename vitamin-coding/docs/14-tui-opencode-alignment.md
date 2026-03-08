@@ -1,95 +1,104 @@
-# Part 14：TUI 对标 OpenCode 设计
+# Part 14：交互层对标 OpenCode 设计
 
-> 版本：v0.1 | 日期：2026-03-02  
-> 目标：参考 `anomalyco/opencode` 的交互式终端体验，完善 `@vitamin/tui` 与 `@vitamin/coding-agent` 的接入链路
+> 版本：v0.2 | 日期：2026-03-09  
+> 目标：参考 `anomalyco/opencode` 的交互链路，统一 vitamin 当前的终端交互、Inspector 服务与 Web UI 设计
 
 ---
 
-## 1. 设计目标
+## 1. 现状澄清（先于设计）
 
-1. 对齐 OpenCode 在交互链路上的核心原则：输入响应及时、键盘语义稳定、页面切换一致。  
-2. 保持 `@vitamin/tui` 的“字符串帧 + 差异渲染”架构，不引入 React/Ink 依赖。  
-3. 优先修复交互模式中的关键断点（监听、快捷键调度、键名语义不一致），确保 TUI 可稳定使用。
+当前仓库中不存在独立 `@vitamin/tui` 包。交互相关能力分布如下：
 
-规范落点：本设计对应 [DEVELOPMENT-SPEC.md §S11.3 与 §S12.4](DEVELOPMENT-SPEC.md#s113-tui-事件循环与输入规范opencode-对齐点)。
+1. `@vitamin/coding-agent`：Interactive 模式（Ink）
+2. `@vitamin/server`：Inspector HTTP/WebSocket 与静态资源托管
+3. `@vitamin/web-ui`：浏览器端 UI
+4. `@vitamin/ui-kit`：共享 React 组件
+
+关键证据：
+
+- `vitamin-coding/packages/coding-agent/src/modes/interactive/index.tsx`
+- `vitamin-coding/packages/server/src/http-server.ts`
+
+因此本章从“独立 TUI 包设计”调整为“交互层整体架构设计”。
 
 ---
 
 ## 2. OpenCode 参考实现（抽象）
 
-基于 `anomalyco/opencode` 的 TUI 行为可抽象为以下模式：
+基于 `anomalyco/opencode` README 与贡献文档，可抽象出以下原则：
 
-### 2.1 事件循环先于页面逻辑
+### 2.1 client/server 分离
 
-- 终端输入监听与 raw mode 生命周期必须显式启动/停止。  
-- 页面组件仅处理语义按键，不直接承担底层终端订阅。
+- TUI 只是 client 之一，后端能力可被 Web/桌面等客户端复用。
+- 协议与会话管理优先稳定，再考虑 UI 外观演进。
 
-### 2.2 键盘语义层（Key Semantic Layer）
+### 2.2 键盘与命令语义稳定
 
-- 原始字节序列需先映射为稳定的语义键（如 `ctrl+c`、`tab`、`shift+tab`）。  
-- 全局快捷键优先级高于页面局部输入，避免冲突。
+- 交互系统先定义输入语义，再由页面消费。
+- 模式切换和中断逻辑要统一，避免“同一按键在不同页面语义冲突”。
 
-### 2.3 页面路由与尺寸同步
+### 2.3 可观测与调试优先
 
-- 页面切换应独立于输入组件实现。  
-- 终端 resize 后，渲染器和页面宽度需要同时更新，避免布局撕裂。
+- 需要可独立运行的服务层（健康检查、日志流、会话接口）。
+- 前端应通过明确 API 获取状态，而非直接耦合内部运行时。
 
 ---
 
-## 3. vitamin-coding 目标架构
+## 3. vitamin 目标架构（pi-mono + oh-my-opencode 结合）
 
-### 3.1 三层交互链路
+### 3.1 三端统一交互面
 
-1. **Terminal Layer**：`createTerminal()` 管理 raw mode + data/resize 生命周期。  
-2. **Key Routing Layer**：`sequenceToKeyId()` + `KeyBindingRegistry` 处理全局快捷键。  
-3. **Page Layer**：`ConversationPage` / `SessionListPage` / `SettingsPage` 处理页面内输入。
+1. 终端端：`coding-agent interactive`（pi-mono 风格可编程交互）
+2. 服务端：`server`（oh-my-opencode 风格 Inspector/日志/会话观测）
+3. Web 端：`web-ui + ui-kit`（对接服务端 API）
 
-执行顺序：`raw input -> key semantic match -> global keybinding -> page.handleInput -> renderFrame`。
+### 3.2 统一能力边界
 
-### 3.2 语义一致性要求
+- `coding-agent` 负责本地交互与模式调度（print/json/rpc/interactive）。
+- `sdk` 提供可嵌入 API 与 RPC client/server。
+- `server` 负责 HTTP/WS、日志回放与实时流、会话接口聚合。
+- `web-ui` 负责展示与操作，不直接持有底层 agent 执行权。
 
-- Enter 语义统一：页面层必须接受 `enter`（兼容 `return` 别名）。  
-- Shift+Tab 语义统一：用于反向页面切换。  
-- Ctrl+C 语义统一：若 Agent 在运行则中断，否则退出应用。
+### 3.3 对齐策略
 
-### 3.3 可靠性约束
-
-- `start()` 必须调用终端监听启动。  
-- `cleanup()` 必须停止监听并恢复终端状态（光标、raw mode）。  
-- resize 事件必须同时更新 renderer 与所有页面宽度。
+- 吸收 **pi-mono**：四模式运行、SDK/RPC、可嵌入优先。
+- 吸收 **oh-my-opencode**：Inspector 观测链路、会话/日志 API 组织方式。
 
 ---
 
 ## 4. 分阶段落地
 
-### Phase A（本轮）
+### Phase A（已完成/在库）
 
-1. 补齐 interactive 模式事件循环闭环（startListening/stopListening）。  
-2. 接入全局快捷键执行链（`sequenceToKeyId -> keyBindings.handle`）。  
-3. 修复页面 Enter 键名不一致问题。
+1. 交互模式入口已落地：`coding-agent` 的 `interactive` 模式。
+2. 多模式并存已落地：`print/json/rpc/interactive`。
+3. Inspector 服务已落地：`/api/health`、日志流、会话/模型等 API。
 
-### Phase B
+### Phase B（短期）
 
-1. 引入 TUI 事件总线（输入、渲染、会话事件统一分发）。  
-2. 页面级导航状态持久化（最近页面、滚动偏移）。
+1. 将终端快捷键语义与 Web 快捷操作抽象成统一命令层。
+2. 将 Inspector 事件模型与 SDK 事件模型对齐（事件字段统一）。
+3. 增加交互链路回归测试（输入中断、模式切换、流式输出）。
 
-### Phase C
+### Phase C（中期）
 
-1. 对齐 OpenCode 的更完整交互能力（命令面板、快捷帮助层、可观测调试面板）。
+1. 评估是否拆分独立 `@vitamin/tui` 包。
+2. 如果拆分，保持 `coding-agent` 仅编排，不再承载具体 UI 实现细节。
+3. 支持更完整的调试面板能力（断点、重放、事件过滤）。
 
 ---
 
 ## 5. 验收标准（专项）
 
-1. 交互模式启动后可稳定接收键盘输入与 resize 事件。  
-2. 全局快捷键（Ctrl+C/Ctrl+D/Ctrl+L/Tab/Shift+Tab）可被执行。  
-3. 页面 Enter 操作在会话页与设置页均可触发。  
-4. 文档与计划、SPEC 形成双向链接（本文件 ↔ DEVELOPMENT-PLAN ↔ DEVELOPMENT-SPEC）。
+1. 终端与 Web 端可共享同一套核心会话/日志语义。
+2. `sdk rpc` 与 `coding-agent --rpc` 的协议行为一致。
+3. Inspector API 可独立被第三方客户端消费。
+4. 文档不再出现“已实现独立 `@vitamin/tui`”的表述偏差。
 
 ---
 
 ## 6. 风险与边界
 
-- 本轮不重写 `@vitamin/tui` 渲染架构，不引入新 UI 框架。  
-- 本轮不实现完整会话管理后端，仅保证前端交互链路可用。  
-- 本轮以稳定可用为主，复杂交互（命令面板/overlay 工作流）放入后续阶段。
+1. 本轮不承诺独立 `@vitamin/tui` 包交付。
+2. 本轮重点是“交互层统一抽象”，不是重写 UI 技术栈。
+3. 若未来拆包，需要优先保证现有 `coding-agent` 交互兼容性。

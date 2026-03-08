@@ -1,5 +1,6 @@
 // HTTP 客户端封装 — 代理支持 + 超时 + 重试
 import { ProviderError } from '@vitamin/shared'
+import { createParser } from 'eventsource-parser'
 
 // HTTP 请求选项
 export interface HttpRequestOptions {
@@ -116,31 +117,36 @@ export async function* httpStreamRequest(options: HttpRequestOptions): AsyncIter
       })
     }
 
-    // 解析 SSE 流
+    // 使用成熟 SSE 解析器处理 chunk 边界与多行 data
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-    let buffer = ''
+    const queue: SseEvent[] = []
+    const parser = createParser({
+      onEvent(message) {
+        queue.push({
+          event: message.event || undefined,
+          data: message.data,
+          id: message.id || undefined,
+        })
+      },
+    })
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
 
-      buffer += decoder.decode(value, { stream: true })
+      parser.feed(decoder.decode(value, { stream: true }))
 
-      // 按双换行分割事件
-      const parts = buffer.split('\n\n')
-      // 最后一个可能不完整，保留在 buffer 中
-      buffer = parts.pop() ?? ''
-
-      for (const part of parts) {
-        const event = parseSseEvent(part)
+      while (queue.length > 0) {
+        const event = queue.shift()
         if (event) yield event
       }
     }
 
-    // 处理剩余 buffer
-    if (buffer.trim()) {
-      const event = parseSseEvent(buffer)
+    // flush 解码器缓冲
+    parser.feed(decoder.decode())
+    while (queue.length > 0) {
+      const event = queue.shift()
       if (event) yield event
     }
   } catch (error) {
@@ -158,30 +164,4 @@ export async function* httpStreamRequest(options: HttpRequestOptions): AsyncIter
   } finally {
     clearTimeout(timer)
   }
-}
-
-// 解析单个 SSE 事件
-function parseSseEvent(raw: string): SseEvent | undefined {
-  const lines = raw.split('\n')
-  let event: string | undefined
-  let data = ''
-  let id: string | undefined
-
-  for (const line of lines) {
-    if (line.startsWith('event:')) {
-      event = line.slice(6).trim()
-    } else if (line.startsWith('data:')) {
-      const value = line.slice(5)
-      // data 字段开头有一个可选空格
-      data += (data ? '\n' : '') + (value.startsWith(' ') ? value.slice(1) : value)
-    } else if (line.startsWith('id:')) {
-      id = line.slice(3).trim()
-    }
-    // 忽略注释行（以 : 开头）和空行
-  }
-
-  // 跳过空数据事件
-  if (!(data || event)) return undefined
-
-  return { event, data, id }
 }

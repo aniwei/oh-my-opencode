@@ -37,8 +37,8 @@
 Layer 0 (无依赖)     @vitamin/shared
                           │
 Layer 1 (基础层)     ┌────┼────────┐
-                     │    │        │
-                @vitamin/ai  @vitamin/config  @vitamin/tui
+         │    │        │
+       @vitamin/ai  @vitamin/config  @vitamin/ui-kit
                      │    │
 Layer 2 (运行时)     │    │
                 @vitamin/agent ◄───┘
@@ -59,7 +59,7 @@ Layer 5 (集成层) ┌──┼──────┐
                  │  │        │
 Layer 6 (产品层) └──┼────────┘
                     ▼
-            @vitamin/coding-agent ──→ @vitamin/tui
+      @vitamin/coding-agent ──→ @vitamin/server ──→ @vitamin/web-ui
                     │
 Layer 7 (SDK层)     ▼
                 @vitamin/sdk
@@ -87,7 +87,7 @@ Layer 7 (SDK层)     ▼
 - vitest workspace 测试配置
 - Biome lint/format 配置
 - TypeScript `tsconfig.base.json`（严格模式全开）
-- 创建全部 13 个包骨架（`package.json` + `tsconfig.json` + `src/index.ts`）
+- 创建全部 15 个包骨架（`package.json` + `tsconfig.json` + `src/index.ts`）
 - CI pipeline（lint → typecheck → test → build）
 
 **验收标准**：
@@ -95,7 +95,7 @@ Layer 7 (SDK层)     ▼
 | # | 标准 | 验证方式 |
 |---|------|---------|
 | 0.1.1 | `pnpm install` 零错误 | `pnpm install --frozen-lockfile` exit 0 |
-| 0.1.2 | `pnpm build` 全量构建成功，所有 13 个包产出 `dist/` | `turbo run build` exit 0 + 检查每个包有 `dist/index.js` + `dist/index.d.ts` |
+| 0.1.2 | `pnpm build` 全量构建成功，所有 15 个包产出 `dist/` | `turbo run build` exit 0 + 检查每个包有 `dist/index.js` + `dist/index.d.ts` |
 | 0.1.3 | `pnpm test` 空测试套件通过 | `vitest run` exit 0 |
 | 0.1.4 | `pnpm lint` 零 warning | `biome check .` exit 0 |
 | 0.1.5 | `pnpm typecheck` 零 error | `turbo run typecheck` exit 0 |
@@ -112,7 +112,7 @@ Layer 7 (SDK层)     ▼
 |------|------|
 | **工期** | Week 1 后半 + Week 2 前半（3 天） |
 | **依赖** | 0.1 骨架 |
-| **来源** | 03-package-design.md §3.13 |
+| **来源** | 03-package-design.md §3.12 |
 
 **交付物**：
 
@@ -706,9 +706,9 @@ Layer 7 (SDK层)     ▼
 
 ## Phase 4：TUI + CLI（Week 11-13）
 
-### 4.1 `@vitamin/tui` — 终端 UI 框架
+### 4.1 `@vitamin/coding-agent` Interactive 层 — 终端交互框架
 
-> **实现规范**：[DEVELOPMENT-SPEC.md §S11](DEVELOPMENT-SPEC.md#s11-vitamintui-实现规范)
+> **实现规范**：[DEVELOPMENT-SPEC.md §S11](DEVELOPMENT-SPEC.md#s11-interactive-交互层实现规范)
 >  
 > **对标专题**：[14-tui-opencode-alignment.md](14-tui-opencode-alignment.md)
 
@@ -779,7 +779,7 @@ Layer 7 (SDK层)     ▼
 |------|------|
 | **工期** | Week 12-13（8 天） |
 | **依赖** | 所有其他包 |
-| **来源** | 03-package-design.md §3.11 |
+| **来源** | 03-package-design.md §3.10 |
 
 #### Week 12 后半交付物：核心 + 非交互模式
 
@@ -849,7 +849,7 @@ Layer 7 (SDK层)     ▼
 |------|------|
 | **工期** | Week 13 后半（2 天） |
 | **依赖** | 4.2 coding-agent |
-| **来源** | 03-package-design.md §3.12 |
+| **来源** | 03-package-design.md §3.11 |
 
 **交付物**：
 
@@ -994,7 +994,7 @@ Layer 7 (SDK层)     ▼
 | `tests/e2e/` | 10+ E2E 测试用例（真实 LLM 调用 + 全链路） |
 | `docs/` | API 文档 + 快速开始 + Extension 开发指南 |
 | `CHANGELOG.md` | v0.1.0 变更日志 |
-| npm publish | 13 个包发布到 npm |
+| npm publish | 15 个包发布到 npm |
 | GitHub Release | v0.1.0 tag + release notes |
 
 **验收标准**：
@@ -1004,7 +1004,7 @@ Layer 7 (SDK层)     ▼
 | 5.3.1 | E2E 覆盖核心场景（对话/工具/多 Agent/Plan/Session/MCP） | 至少 10 个 E2E 测试用例通过 |
 | 5.3.2 | 文档站可访问 + 快速开始 < 5 分钟可跑通 | 人工验证 |
 | 5.3.3 | Extension 开发指南完整（含 3 个示例） | 文档包含基础/高级/UI 三种 Extension 示例 |
-| 5.3.4 | 13 个包全部发布到 npm | `npm view @vitamin/ai` 返回版本 |
+| 5.3.4 | 15 个包全部发布到 npm | `npm view @vitamin/ai` 返回版本 |
 | 5.3.5 | `npx @vitamin/coding-agent` 可直接运行 | 新机器测试 |
 | 5.3.6 | `npx @vitamin/coding-agent doctor` 通过 | 新机器测试 |
 
@@ -1024,7 +1024,7 @@ Layer 7 (SDK层)     ▼
 | v0.1.6 | 全量构建 < 60s | `time pnpm build` |
 | v0.1.7 | 全量测试 < 180s | `time pnpm test` |
 | v0.1.8 | 零 `as any` / `@ts-ignore` / `@ts-expect-error` | grep 全仓库 |
-| v0.1.9 | npm 13 个包全部发布 | npm registry 验证 |
+| v0.1.9 | npm 15 个包全部发布 | npm registry 验证 |
 
 ---
 
@@ -1933,7 +1933,7 @@ Week 11 ──── M3: 会话 + 扩展
              └── @vitamin/mcp (三层 MCP)
 
 Week 13 ──── M4/GA: 完整产品
-             ├── @vitamin/tui (差异渲染 + 11 组件)
+             ├── @vitamin/coding-agent interactive (Ink 交互层)
              ├── @vitamin/coding-agent (CLI + 4 模式)
              └── @vitamin/sdk (嵌入式 + RPC)
 
@@ -2030,7 +2030,7 @@ Week 41 ──── M8/v0.3.0: 云端部署发布
 | @vitamin/session | agent, ai, shared | 3 | M3 |
 | @vitamin/extension | hooks, orchestrator, tools | 3 | M3 |
 | @vitamin/mcp | extension, tools | 3 | M3 |
-| @vitamin/tui | shared | 4 | M4 |
+| @vitamin/ui-kit | shared | 4/9 | M4/M9 |
 | @vitamin/coding-agent | 全部 | 4 | M4 |
 | @vitamin/sdk | coding-agent | 4 | M4 |
 | @vitamin/server | shared, agent, session, hooks | 6 | M6 |

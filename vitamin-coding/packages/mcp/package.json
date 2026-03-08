@@ -21,8 +21,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@vitamin/shared": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.18.1",
     "@vitamin/agent": "workspace:*",
+    "@vitamin/shared": "workspace:*",
     "@vitamin/tools": "workspace:*"
   },
   "publishConfig": {

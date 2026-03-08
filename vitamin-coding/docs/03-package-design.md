@@ -2,6 +2,28 @@
 
 ## 第三部分：各包详细设计
 
+### 3.0 包状态矩阵（实现态 / 规划态）
+
+> 基准目录：`vitamin-coding/packages/`（当前 15 包）
+
+| 包名 | 实现态（代码） | 规划态（后续能力） |
+|------|----------------|--------------------|
+| `@vitamin/ai` | 已实现多 provider 适配、模型注册、流式输出 | 持续替换为更多官方 SDK provider（分批） |
+| `@vitamin/agent` | 已实现会话循环、工具调度、中断与恢复 | 更细粒度事件与可观测性增强 |
+| `@vitamin/coding-agent` | 已实现 `interactive/print/json/rpc` 四模式 | 交互层进一步模块化与复用 |
+| `@vitamin/config` | 已实现配置加载、合并、校验 | 配置迁移与 schema 演进自动化 |
+| `@vitamin/extension` | 已实现扩展声明与加载基础能力 | 扩展隔离与沙箱策略增强 |
+| `@vitamin/hooks` | 已实现 Hook 管线与注册机制 | Hook 分类治理与追踪指标 |
+| `@vitamin/mcp` | 已实现三层加载 + 官方 MCP SDK transport 封装 | OAuth / 会话恢复策略增强 |
+| `@vitamin/orchestrator` | 已实现多 Agent 编排基础能力 | 策略决策与成本优化增强 |
+| `@vitamin/sdk` | 已实现嵌入式调用与流式接口 | 更稳定的对外 API 面与版本契约 |
+| `@vitamin/server` | 已实现 HTTP API 与 Inspector 基础 | 多租户与权限边界完善 |
+| `@vitamin/session` | 已实现会话持久化与恢复 | 历史检索与归档治理 |
+| `@vitamin/shared` | 已实现通用工具与基础设施（含 JSONC 解析） | 工具模块进一步收敛与瘦身 |
+| `@vitamin/tools` | 已实现工具注册与执行框架 | 工具权限模型细化 |
+| `@vitamin/ui-kit` | 已实现共享 UI 组件基础层 | 设计 token 与主题系统完善 |
+| `@vitamin/web-ui` | 已实现浏览器端交互入口 | 复杂场景交互与性能优化 |
+
 ### 3.1 `@vitamin/ai` — 统一 LLM API 层
 
 > 灵感来源：pi-mono 的 `@mariozechner/pi-ai`，但加入 oh-my-opencode 的 Category 系统和 fallback 链
@@ -1392,62 +1414,11 @@ packages/mcp/src/
 
 ---
 
-### 3.10 `@vitamin/tui` — 终端 UI 框架
-
-> 来源：pi-mono 的自研 pi-tui（差异渲染 + CSI 2026 + 组件化）
-
-#### 3.10.1 设计理念
-
-**不使用 React-like 虚拟 DOM**。采用 pi-mono 验证过的"每帧返回字符串数组"模型：
-- 每个组件 `render(width): string[]`
-- 框架负责差异比较 + 最小化终端输出
-- CSI 2026 同步输出（原子屏幕更新，消除闪烁）
-
-#### 3.10.2 目录结构
-
-```
-packages/tui/src/
-├── index.ts
-├── types.ts                        # Component, Theme, Terminal
-├── renderer.ts                     # 差异渲染引擎
-├── terminal.ts                     # 终端抽象 (TTY I/O)
-├── theme.ts                        # 主题系统（热重载）
-│
-├── components/                     # 内置组件
-│   ├── text.ts                     # 多行文本 + 折行
-│   ├── truncated-text.ts           # 单行截断
-│   ├── input.ts                    # 单行输入
-│   ├── editor.ts                   # 多行编辑器（Tab 补全、粘贴处理）
-│   ├── markdown.ts                 # Markdown 渲染（语法高亮）
-│   ├── select-list.ts              # 交互式选择列表
-│   ├── image.ts                    # 内联图片（Kitty/iTerm2）
-│   ├── loader.ts                   # 加载动画
-│   ├── box.ts                      # 布局盒子
-│   ├── container.ts                # 容器
-│   └── spacer.ts                   # 间隔
-│
-├── overlays/                       # Overlay 系统
-│   ├── overlay-manager.ts          # Overlay 管理器
-│   └── overlay.ts                  # 基础 Overlay
-│
-├── input/                          # 输入处理
-│   ├── key-parser.ts               # 按键解析
-│   ├── ime-handler.ts              # IME 输入法支持（CJK）
-│   └── focusable.ts                # 焦点管理
-│
-└── utils/
-    ├── ansi.ts                     # ANSI 颜色/样式
-    ├── measure.ts                  # 字符宽度测量（CJK 双宽度）
-    └── csi.ts                      # CSI 序列
-```
-
----
-
-### 3.11 `@vitamin/coding-agent` — 主产品 CLI
+### 3.10 `@vitamin/coding-agent` — 主产品 CLI
 
 > 最终产品包，组装所有子包
 
-#### 3.11.1 目录结构
+#### 3.10.1 目录结构
 
 ```
 packages/coding-agent/src/
@@ -1464,8 +1435,8 @@ packages/coding-agent/src/
 │   └── prompt-templates.ts         # 提示模板
 │
 ├── modes/                          # 运行模式
-│   ├── interactive/                # 交互模式（TUI）
-│   │   ├── app.ts                  # TUI 应用
+│   ├── interactive/                # 交互模式（Ink）
+│   │   ├── app.ts                  # Interactive 应用
 │   │   ├── pages/                  # 页面组件
 │   │   └── widgets/                # 自定义 Widget
 │   ├── print/                      # 打印模式（非交互）
@@ -1485,7 +1456,7 @@ packages/coding-agent/src/
     └── tmux-manager/               # Tmux 管理
 ```
 
-#### 3.11.2 启动流程
+#### 3.10.2 启动流程
 
 ```
 vitamin [prompt]
@@ -1506,7 +1477,7 @@ vitamin [prompt]
   │     ├── 构建 System Prompt
   │     └── 解析初始 Model
   ├── 5. 选择运行模式
-  │     ├── interactive → TUI App
+  │     ├── interactive → Interactive App (Ink)
   │     ├── --print → Print Mode
   │     ├── --json → JSON Mode
   │     └── --rpc → RPC Mode
@@ -1518,7 +1489,7 @@ vitamin [prompt]
 
 ---
 
-### 3.12 `@vitamin/sdk` — 嵌入式 SDK
+### 3.11 `@vitamin/sdk` — 嵌入式 SDK
 
 > 来源：pi-mono 的 SDK/RPC 模式
 
@@ -1577,7 +1548,7 @@ export interface AgentStream {
 
 ---
 
-### 3.13 `@vitamin/shared` — 共享工具库
+### 3.12 `@vitamin/shared` — 共享工具库
 
 ```
 packages/shared/src/
@@ -1593,3 +1564,69 @@ packages/shared/src/
 ├── event-emitter.ts                # 类型安全事件发射器
 └── disposable.ts                   # 资源清理
 ```
+
+---
+
+### 3.13 `@vitamin/server` — HTTP 服务与可观测入口
+
+> 定位：把 CLI/Agent 能力暴露为可编程服务层，承接 Inspector 与 Web 前端访问
+
+#### 3.13.1 目录结构（摘录）
+
+```
+packages/server/src/
+├── index.ts
+├── app.ts                          # 服务初始化
+├── routes/                         # 路由注册
+├── api/                            # 对话、会话、状态等 API
+├── middleware/                     # 认证、日志、限流
+└── inspector/                      # Inspector 相关入口
+```
+
+#### 3.13.2 双层标注
+
+- 实现态：基础 HTTP API、会话操作、流式输出入口已落地。
+- 规划态：权限模型、多租户、审计日志等服务治理能力。
+
+---
+
+### 3.14 `@vitamin/web-ui` — 浏览器端交互
+
+> 定位：对接 `@vitamin/server` API，提供浏览器会话与操作界面
+
+#### 3.14.1 目录结构（摘录）
+
+```
+packages/web-ui/src/
+├── app.tsx
+├── pages/
+├── components/
+├── services/                       # API + 流式事件客户端
+└── state/
+```
+
+#### 3.14.2 双层标注
+
+- 实现态：基础会话页面与接口对接能力已存在。
+- 规划态：复杂工作流编排、性能优化和更强可观测性。
+
+---
+
+### 3.15 `@vitamin/ui-kit` — 共享 UI 组件层
+
+> 定位：统一 Web 端与 Inspector 端的设计 token、基础组件与主题约定
+
+#### 3.15.1 目录结构（摘录）
+
+```
+packages/ui-kit/src/
+├── index.ts
+├── tokens/
+├── theme/
+└── components/
+```
+
+#### 3.15.2 双层标注
+
+- 实现态：基础 token 与组件复用能力已建立。
+- 规划态：主题系统与组件标准进一步稳定化。

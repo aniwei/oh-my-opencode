@@ -3,18 +3,40 @@
 ## 第八部分：pi-mono 融合详解——原因、目的与实现
 
 > 本章针对每一个从 pi-mono 吸纳的设计点，给出**为什么要融合**、**oh-my-opencode 存在什么问题**、**pi-mono 如何解决**、以及**在 vitamin 中的完整实现代码和流程**。
+>
+> 核验说明：本章 8.1 新增“源码核验矩阵”（2026-03-09），用于区分“已实现”和“设计目标”。
 
 ### 8.1 融合总览：7 个融合点
 
 | # | 融合点 | oh-my-opencode 的痛点 | pi-mono 的优势 | vitamin 怎么做 |
 |---|--------|----------------------|----------------|---------------|
-| 1 | 分层包设计 | 单体插件，无法独立使用 LLM/Agent 层 | 7 包分层，每层可独立 npm install | 13 包 pnpm monorepo，每层 0 向上依赖 |
-| 2 | 极简 Agent 运行时 | Agent 循环耦合在 OpenCode 内部，无法复用 | 5 文件实现完整 Agent 循环 | `@vitamin/agent` 独立包，6 文件 |
+| 1 | 分层包设计 | 单体插件，无法独立使用 LLM/Agent 层 | 7 包分层，每层可独立 npm install | 15 包 pnpm monorepo，核心运行时可独立复用 |
+| 2 | 极简 Agent 运行时 | Agent 循环耦合在 OpenCode 内部，无法复用 | 独立 Agent Loop + 工具执行流 | `@vitamin/agent` 提供 `Agent` 类 + 双层 loop |
 | 3 | Steering/FollowUp 消息队列 | 用户无法在 Agent 工作时排队发消息 | 双队列 + 工具间隙中断 | Agent 类原生支持，工具执行粒度中断 |
 | 4 | Session 树（分支/导航） | 线性会话，回溯只能重来 | JSONL 树结构 + /tree + /fork | `@vitamin/session` 树存储 + 增量压缩 |
-| 5 | Extension UI 控制 | 插件无法修改 UI（纯后端 Hook） | Extension 可替换编辑器、页脚、overlay | 统一 ExtensionAPI + ExtensionUIContext |
-| 6 | SDK/RPC 多前端模式 | 只能作为 CLI 插件运行 | SDK + RPC + Print + JSON 4 种模式 | `@vitamin/sdk` 独立包 |
-| 7 | 差异渲染 TUI | 依赖 OpenCode 的 Ink (React) TUI | 自研差异渲染 + CSI 2026 | `@vitamin/tui` 独立包 |
+| 5 | Extension 扩展控制 | 插件能力依赖 OpenCode 生命周期 | extension 可注入工具/命令/工作流 | `@vitamin/extension` 已落地工具与扩展装配，UI 扩展位在后续阶段 |
+| 6 | SDK/RPC 多前端模式 | 只能作为 CLI 插件运行 | SDK + RPC + Print + JSON 4 种模式 | `@vitamin/coding-agent` + `@vitamin/sdk` 已支持四模式 |
+| 7 | 交互层对标（非独立 tui 包） | OpenCode 拥有完整 TUI 与 client/server 交互 | pi-mono 提供可编程交互与扩展机制 | 采用 `coding-agent interactive(ink)` + `server` + `web-ui` 组合落地 |
+
+### 8.1.1 融合实现核验矩阵（2026-03-09）
+
+| 融合点 | 核验结果 | 关键代码证据 | 备注 |
+|---|---|---|---|
+| 分层包设计 | 已实现 | `vitamin-coding/packages`（15 包） | 文档中旧版“13 包 + 独立 tui 包”已过时 |
+| Agent 双层循环 | 已实现 | `vitamin-coding/packages/agent/src/agent-loop.ts` | 外循环 FollowUp + 内循环 Tool/Steering |
+| Steering/FollowUp 队列 | 已实现 | `vitamin-coding/packages/agent/src/agent.ts` | `steer()`/`followUp()` 与队列排空逻辑齐全 |
+| Plan/Build + 反递归守卫（来自 oh-my-opencode） | 已实现 | `vitamin-coding/packages/orchestrator/src/delegation/task-dispatcher.ts` | 含 Plan Family recursion guard |
+| 三层 MCP 优先级（来自 oh-my-opencode） | 已实现 | `vitamin-coding/packages/mcp/src/types.ts` | `builtin > user > skill` 已固化 |
+| MCP 工具注册与重连 | 已实现 | `vitamin-coding/packages/mcp/src/mcp-registry.ts` | 支持指数退避重连与健康检查 |
+| SDK/RPC | 已实现 | `vitamin-coding/packages/sdk/src/rpc-server.ts` | JSON-RPC 2.0 over Unix socket/TCP |
+| CLI 四模式 | 已实现 | `vitamin-coding/packages/coding-agent/src/types.ts` | `print/json/rpc/interactive` |
+| 交互层能力 | 部分实现 | `vitamin-coding/packages/coding-agent/src/modes/interactive/index.tsx` | 当前为内置 interactive（Ink），并非独立 `@vitamin/tui` |
+
+融合结论：
+
+- 与 **pi-mono** 对齐的“可嵌入运行时”主线已成立（agent/sdk/rpc/四模式）。
+- 与 **oh-my-opencode** 对齐的“复杂编排能力”主线已落地关键骨架（Plan Family guard + MCP 三层优先级）。
+- 尚需补强的是“扩展对 UI 的控制面”与“交互层统一抽象”，这是下一阶段的设计重点。
 
 ---
 
@@ -1599,7 +1621,7 @@ export class DiffRenderer {
  *
  * 对比 React/Ink 的虚拟 DOM：
  * - Ink: JSX → VDOM → reconcile → diff → terminal output
- * - vitamin/tui: render(width) → string[] → diff → terminal output
+ * - 规划中的独立交互内核: render(width) → string[] → diff → terminal output
  *
  * 更简单、更快、Extension 更容易实现自定义组件
  */
@@ -1616,7 +1638,7 @@ export interface Component {
 
 **为什么不直接用 Ink (React for CLI)**：
 
-| 维度 | Ink (React) | vitamin/tui (pi-mono 方案) |
+| 维度 | 当前实现（Ink） | 规划方案（独立交互内核，未落地） |
 |------|-------------|---------------------------|
 | 渲染 | 全量 reconcile | 行级 diff |
 | 开销 | React reconciler + VDOM | 0 依赖，纯字符串比较 |
@@ -1644,12 +1666,12 @@ export interface Component {
 │   ├── @vitamin/orchestrator AgentRegistry.init()              │
 │   ├── @vitamin/session SessionManager.init()                  │
 │   ├── @vitamin/extension ExtensionRunner.init()               │
-│   └── @vitamin/tui 启动交互界面                               │
+│   └── @vitamin/coding-agent interactive 模式启动（Ink）       │
 └───────────────────────────────────────────────────────────────┘
          │
          ▼
-┌─── 融合点 7（差异渲染 TUI）──────────────────────────────────┐
-│ TUI 渲染首帧（CSI 2026 原子更新）                             │
+┌─── 融合点 7（交互层能力，对标进行中）─────────────────────────┐
+│ interactive 渲染首帧（当前实现），独立交互内核为后续规划      │
 │ ┌────────────────────────────────────────────────────┐        │
 │ │ vitamin v0.1.0 | claude-opus-4-6 | $0.00           │ header │
 │ │────────────────────────────────────────────────────│        │
@@ -1760,10 +1782,10 @@ export interface Component {
 
 | 融合点 | 从 pi-mono 取什么 | 解决 oh-my-opencode 什么问题 | vitamin 额外增强 |
 |--------|-------------------|-----------------------------|-----------------| 
-| 分层包设计 | 7 包 monorepo 架构 | 143k LOC 单体插件无法复用 | 13 包，更细粒度拆分 |
+| 分层包设计 | 7 包 monorepo 架构 | 143k LOC 单体插件无法复用 | 15 包，更细粒度拆分 |
 | Agent 运行时 | 5 文件 Agent Loop | Agent 循环是 OpenCode 黑盒 | 增加 Hook 集成点 + 多 Agent 感知 |
 | Steering/FollowUp | 双队列 + 工具间隙中断 | 用户无法中途补充信息 | 队列模式可配置 (all / one-at-a-time) |
 | Session 树 | JSONL 树 + /tree + /fork | 线性会话无法回溯分支 | 增量压缩节点 + SQLite 可选 |
 | Extension UI | ExtensionUIContext 全套 | 插件无法操作 UI | 与 Hook 统一为单一 ExtensionAPI |
 | SDK/RPC | 4 种运行模式 + SDK | 只能作为 CLI 插件 | 与 oh-my-opencode 编排引擎深度集成 |
-| 差异渲染 TUI | 行级 diff + CSI 2026 | 依赖 OpenCode 的 TUI，无法定制 | 组件模型更简单，Extension 更易写 |
+| 交互层对标 | 可编程交互与扩展机制 | 依赖单一前端形态，定制成本高 | 当前 interactive/server/web-ui 组合，独立交互内核后续评估 |

@@ -1,6 +1,6 @@
 # API 参考
 
-> Vitamin Coding 13 个 npm 包的公共 API 概览
+> Vitamin Coding 15 个 npm 包的公共 API 概览
 
 ## 包总览
 
@@ -16,9 +16,11 @@
 | `@vitamin/orchestrator` | 多 Agent 编排（注册、委派、DAG、Plan） | L3 编排 |
 | `@vitamin/extension` | 扩展系统（加载、事件总线、内置 Extension） | L3 编排 |
 | `@vitamin/mcp` | MCP 协议支持（Client、Registry、OAuth） | L3 编排 |
-| `@vitamin/tui` | 终端 UI（Ink 组件） | L4 交互 |
-| `@vitamin/coding-agent` | CLI 入口（main、AgentSession、Modes） | L5 应用 |
+| `@vitamin/coding-agent` | CLI 入口（main、AgentSession、Modes） | L4 交互 |
 | `@vitamin/sdk` | 嵌入式 SDK（创建 Agent、RPC、Stream） | L5 应用 |
+| `@vitamin/server` | 服务端 API（HTTP/SSE、Inspector 接入） | L5 服务 |
+| `@vitamin/ui-kit` | 共享 UI 组件与设计 token | L5 交互 |
+| `@vitamin/web-ui` | 浏览器端交互界面 | L5 交互 |
 
 ---
 
