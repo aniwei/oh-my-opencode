@@ -37,6 +37,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check type safety guards
+        run: pnpm quality:check-type-safety
+
       - name: Check package/docs sync
         run: pnpm docs:check-package-sync
 

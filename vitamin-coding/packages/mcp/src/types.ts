@@ -2,7 +2,7 @@
 import type { ToolResult } from '@vitamin/agent'
 
 // MCP 传输类型
-export type McpTransportType = 'stdio' | 'http'
+export type McpTransportType = 'stdio' | 'http' | 'sse'
 
 // MCP 服务器配置
 export interface McpServerConfig {

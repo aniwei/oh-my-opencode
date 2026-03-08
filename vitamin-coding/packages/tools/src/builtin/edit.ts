@@ -1,4 +1,4 @@
-import { isFile, pathExists, readTextFile, writeTextFile } from '@vitamin/shared'
+import { isFile, exists, readText, writeText } from '@vitamin/shared'
 import { normalizePath, resolvePath } from '@vitamin/shared'
 // edit 工具 — 精确字符串替换编辑
 import { z } from 'zod'
@@ -27,7 +27,7 @@ export function createEditTool(projectRoot: string): AgentTool<EditArgs> {
       const normalizedPath = normalizePath(resolvedPath)
 
       // 检查文件存在
-      if (!(await pathExists(normalizedPath))) {
+      if (!(await exists(normalizedPath))) {
         return {
           content: [{ type: 'text', text: `File not found: ${args.path}` }],
           isError: true,
@@ -42,7 +42,7 @@ export function createEditTool(projectRoot: string): AgentTool<EditArgs> {
       }
 
       try {
-        const content = await readTextFile(normalizedPath)
+        const content = await readText(normalizedPath)
         if (content === undefined) {
           return {
             content: [{ type: 'text', text: `Failed to read file: ${args.path}` }],
@@ -79,7 +79,7 @@ export function createEditTool(projectRoot: string): AgentTool<EditArgs> {
 
         // 执行替换
         const newContent = content.replace(args.oldString, args.newString)
-        await writeTextFile(normalizedPath, newContent)
+        await writeText(normalizedPath, newContent)
 
         // 生成简要 diff 信息
         const oldLines = args.oldString.split('\n').length

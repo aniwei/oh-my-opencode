@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { createHash } from 'node:crypto'
 
 import type { AgentTool, ToolResult } from '@vitamin/agent'
-import { readTextFile, writeTextFile, resolvePath, normalizePath, pathExists } from '@vitamin/shared'
+import { readText, writeText, resolvePath, normalizePath, exists } from '@vitamin/shared'
 
 const HashlineEditArgsSchema = z.object({
   path: z.string().describe('要编辑的文件路径'),
@@ -24,11 +24,11 @@ export function createHashlineEditTool(projectRoot: string): AgentTool<HashlineE
     async execute(_id, args, _signal): Promise<ToolResult> {
       const resolved = normalizePath(resolvePath(projectRoot, args.path))
 
-      if (!(await pathExists(resolved))) {
+      if (!(await exists(resolved))) {
         return { content: [{ type: 'text', text: `File not found: ${args.path}` }], isError: true }
       }
 
-      const content = await readTextFile(resolved)
+      const content = await readText(resolved)
 
       if (content === undefined) {
         return { content: [{ type: 'text', text: `Failed to read file: ${args.path}` }], isError: true }
@@ -62,7 +62,7 @@ export function createHashlineEditTool(projectRoot: string): AgentTool<HashlineE
 
       lines[lineIndex] = args.newContent
       const updated = lines.join('\n')
-      await writeTextFile(resolved, updated)
+      await writeText(resolved, updated)
 
       return {
         content: [{

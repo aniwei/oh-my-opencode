@@ -3,7 +3,7 @@ import type { VitaminConfig } from '@vitamin/config'
 import type { ExtensionRunner } from '@vitamin/extension'
 import type { HookEngine } from '@vitamin/hooks'
 import type { McpRegistry } from '@vitamin/mcp'
-import type { AgentRegistry, BackgroundManager, TaskDispatcher } from '@vitamin/orchestrator'
+import type { AgentRegistry, BackgroundManager, Dispatcher } from '@vitamin/orchestrator'
 import type { SessionManager } from '@vitamin/session'
 import type { SessionSummary } from '@vitamin/session'
 import type { ToolRegistry } from '@vitamin/tools'
@@ -35,7 +35,7 @@ export interface Subsystems {
   sessionManager: SessionManager
   mcpRegistry: McpRegistry
   extensionRunner: ExtensionRunner
-  taskDispatcher: TaskDispatcher
+  taskDispatcher: Dispatcher
   backgroundManager: BackgroundManager
   server?: any // Optional inspector server, any typed to avoid circular dependency loop if not needed
 }

@@ -116,6 +116,14 @@ describe('MCP 配置加载器', () => {
         })
         expect(config.transport).toBe('http')
       })
+
+      it('#then 支持 sse 传输', () => {
+        const config = configEntryToServerConfig('explicit-sse', {
+          transport: 'sse',
+          url: 'https://example.com/sse',
+        })
+        expect(config.transport).toBe('sse')
+      })
     })
   })
 })

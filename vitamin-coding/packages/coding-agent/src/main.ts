@@ -240,7 +240,7 @@ async function createSubsystems(config: unknown, options: CLIOptions): Promise<S
 
   // 注册内置工具
   registerBuiltinTools(toolRegistry, options.projectDir, {
-    taskDispatch: async ({ prompt, subagent, category, mode }: { prompt: string, subagent: string, category: string, mode: 'sync' | 'background' }) => {
+    taskDispatch: async ({ prompt, subagent, category, mode }) => {
       const handle = await taskDispatcher.dispatch({
         prompt,
         subagent,

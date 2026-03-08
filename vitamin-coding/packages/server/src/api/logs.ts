@@ -26,7 +26,7 @@ export function createLogReplayRoute(hub: LogBroadcastHub) {
 export function createLogStreamRoute(hub: LogBroadcastHub) {
   return async (req: Request, res: Response) => {
     const sessionId = req.query.sessionId as string | undefined
-    const userId = (req as unknown as { user?: { id: string } }).user?.id // Mock
+    const userId = getUserId(req)
     const minLevel = (req.query.level as string) ?? 'info'
     const sources = req.query.sources
       ? ((req.query.sources as string).split(',') as LogEvent['source'][])
@@ -58,4 +58,11 @@ export function createLogStreamRoute(hub: LogBroadcastHub) {
       res.end()
     }
   }
+}
+
+function getUserId(req: Request): string | undefined {
+  const user = (req as Request & { user?: unknown }).user
+  if (typeof user !== 'object' || user === null) return undefined
+  const id = (user as Record<string, unknown>).id
+  return typeof id === 'string' ? id : undefined
 }

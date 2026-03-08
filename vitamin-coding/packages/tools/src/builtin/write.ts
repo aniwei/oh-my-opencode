@@ -1,6 +1,6 @@
 // write 工具 — 创建或覆盖文件
 import { dirname } from 'node:path'
-import { mkdirp, writeTextFile } from '@vitamin/shared'
+import { mkdirp, writeText } from '@vitamin/shared'
 import { normalizePath, resolvePath } from '@vitamin/shared'
 import { z } from 'zod'
 
@@ -33,7 +33,7 @@ export function createWriteTool(projectRoot: string): AgentTool<WriteArgs> {
           await mkdirp(dirname(normalizedPath))
         }
 
-        await writeTextFile(normalizedPath, args.content)
+        await writeText(normalizedPath, args.content)
 
         const lineCount = args.content.split('\n').length
         return {

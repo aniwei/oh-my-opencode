@@ -1,7 +1,7 @@
 // 路径规范化和项目根目录检测
 import { dirname, normalize, resolve, sep } from 'node:path'
 
-import { pathExists } from './fs'
+import { exists } from './fs'
 
 // 规范化路径：解析 .. 和 .，统一使用正斜杠
 export function normalizePath(path: string): string {
@@ -32,7 +32,7 @@ export async function findProjectRoot(startDir: string): Promise<string | undefi
 
   while (searching) {
     for (const marker of PROJECT_ROOT_MARKERS) {
-      if (await pathExists(resolve(current, marker))) {
+      if (await exists(resolve(current, marker))) {
         return current
       }
     }

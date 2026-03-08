@@ -55,7 +55,7 @@ import 语句按以下顺序排列，组间用空行分隔：
 // 1. 包名引入（node: 内置 → 第三方包 → workspace 包）
 import { join } from 'node:path'
 import { z } from 'zod'
-import { createLogger, readTextFile } from '@vitamin/shared'
+import { createLogger, readText } from '@vitamin/shared'
 
 // 2. 相对路径引入
 import { DEFAULT_CONFIG } from './defaults'

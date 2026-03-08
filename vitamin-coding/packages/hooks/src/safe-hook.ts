@@ -26,7 +26,5 @@ export function isHookEnabled(hookName: string, disabledHooks: string[]): boolea
   return !disabledHooks.includes(hookName)
 }
 
-// 安全判断 Hook 启用状态 (配合 disabledHooks 配置数组)
-export function safeHookEnabled(hookName: string, disabledHooks: string[]): boolean {
-  return isHookEnabled(hookName, disabledHooks)
-}
+// 兼容旧命名
+export const safeHookEnabled = isHookEnabled

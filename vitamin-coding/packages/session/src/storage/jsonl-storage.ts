@@ -4,7 +4,7 @@ import { mkdir, readFile, rm, readdir } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { openSync, fsyncSync, writeSync, closeSync } from 'node:fs'
 
-import { createLogger, pathExists } from '@vitamin/shared'
+import { createLogger, exists } from '@vitamin/shared'
 
 import type { SessionEntry, SessionStorage } from '../types'
 
@@ -33,7 +33,7 @@ export class JsonlStorage implements SessionStorage {
 
   async readAll(sessionId: string): Promise<SessionEntry[]> {
     const filePath = this.filePath(sessionId)
-    const fileExists = await pathExists(filePath)
+    const fileExists = await exists(filePath)
     if (!fileExists) {
       return []
     }
@@ -54,19 +54,19 @@ export class JsonlStorage implements SessionStorage {
   }
 
   async exists(sessionId: string): Promise<boolean> {
-    return pathExists(this.filePath(sessionId))
+    return exists(this.filePath(sessionId))
   }
 
   async remove(sessionId: string): Promise<void> {
     const filePath = this.filePath(sessionId)
-    const fileExists = await pathExists(filePath)
+    const fileExists = await exists(filePath)
     if (fileExists) {
       await rm(filePath)
     }
   }
 
   async listSessionIds(): Promise<string[]> {
-    const dirExists = await pathExists(this.baseDir)
+    const dirExists = await exists(this.baseDir)
     if (!dirExists) {
       return []
     }
@@ -83,7 +83,7 @@ export class JsonlStorage implements SessionStorage {
 
   private async ensureDir(filePath: string): Promise<void> {
     const dir = dirname(filePath)
-    const dirExists = await pathExists(dir)
+    const dirExists = await exists(dir)
     if (!dirExists) {
       await mkdir(dir, { recursive: true })
     }

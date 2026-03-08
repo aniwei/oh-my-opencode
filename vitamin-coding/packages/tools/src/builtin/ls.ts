@@ -2,7 +2,7 @@
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { pathExists } from '@vitamin/shared'
+import { exists } from '@vitamin/shared'
 import { z } from 'zod'
 
 import type { AgentTool, ToolResult } from '@vitamin/agent'
@@ -29,7 +29,7 @@ export function createLsTool(projectRoot: string): AgentTool<LsArgs> {
     async execute(_id, args, _signal): Promise<ToolResult> {
       const targetDir = join(projectRoot, args.path)
 
-      if (!(await pathExists(targetDir))) {
+      if (!(await exists(targetDir))) {
         return {
           content: [{ type: 'text', text: `Directory not found: ${args.path}` }],
           isError: true,

@@ -73,29 +73,7 @@ export class OAuthManager {
       body.set('scope', config.scopes.join(' '))
     }
 
-    const response = await fetch(config.tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-    })
-
-    if (!response.ok) {
-      throw new Error(`OAuth 请求失败: ${String(response.status)}`)
-    }
-
-    const data = await response.json() as {
-      access_token: string
-      refresh_token?: string
-      expires_in?: number
-      token_type?: string
-    }
-
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: Date.now() / 1000 + (data.expires_in ?? 3600),
-      tokenType: data.token_type ?? 'Bearer',
-    }
+    return this.fetchOAuthToken(config.tokenUrl, body, 'OAuth 请求失败')
   }
 
   // 使用 refresh_token 刷新令牌
@@ -115,6 +93,18 @@ export class OAuthManager {
       body.set('client_secret', config.clientSecret)
     }
 
+    const token = await this.fetchOAuthToken(url, body, 'OAuth 刷新失败')
+    return {
+      ...token,
+      refreshToken: token.refreshToken ?? refreshToken,
+    }
+  }
+
+  private async fetchOAuthToken(
+    url: string,
+    body: URLSearchParams,
+    errorPrefix: string,
+  ): Promise<OAuthToken> {
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -122,7 +112,7 @@ export class OAuthManager {
     })
 
     if (!response.ok) {
-      throw new Error(`OAuth 刷新失败: ${String(response.status)}`)
+      throw new Error(`${errorPrefix}: ${String(response.status)}`)
     }
 
     const data = await response.json() as {
@@ -134,7 +124,7 @@ export class OAuthManager {
 
     return {
       accessToken: data.access_token,
-      refreshToken: data.refresh_token ?? refreshToken,
+      refreshToken: data.refresh_token,
       expiresAt: Date.now() / 1000 + (data.expires_in ?? 3600),
       tokenType: data.token_type ?? 'Bearer',
     }

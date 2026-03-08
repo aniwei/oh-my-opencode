@@ -2,7 +2,7 @@
 import { z } from 'zod'
 
 import type { AgentTool, ToolResult } from '@vitamin/agent'
-import { readTextFile, writeTextFile, resolvePath, normalizePath, pathExists } from '@vitamin/shared'
+import { readText, writeText, resolvePath, normalizePath, exists } from '@vitamin/shared'
 
 const EditDiffArgsSchema = z.object({
   path: z.string().describe('要编辑的文件路径'),
@@ -24,11 +24,11 @@ export function createEditDiffTool(projectRoot: string): AgentTool<EditDiffArgs>
     async execute(_id, args, _signal): Promise<ToolResult> {
       const resolved = normalizePath(resolvePath(projectRoot, args.path))
 
-      if (!(await pathExists(resolved))) {
+      if (!(await exists(resolved))) {
         return { content: [{ type: 'text', text: `File not found: ${args.path}` }], isError: true }
       }
 
-      const content = await readTextFile(resolved)
+      const content = await readText(resolved)
 
       if (content === undefined) {
         return { content: [{ type: 'text', text: `Failed to read file: ${args.path}` }], isError: true }
@@ -37,7 +37,7 @@ export function createEditDiffTool(projectRoot: string): AgentTool<EditDiffArgs>
       // 精确匹配
       if (content.includes(args.oldString)) {
         const updated = content.replace(args.oldString, args.newString)
-        await writeTextFile(resolved, updated)
+        await writeText(resolved, updated)
         return { content: [{ type: 'text', text: `Exact match replaced in ${args.path}` }] }
       }
 
@@ -50,7 +50,7 @@ export function createEditDiffTool(projectRoot: string): AgentTool<EditDiffArgs>
         const before = contentLines.slice(0, bestMatch.start)
         const after = contentLines.slice(bestMatch.end)
         const updated = [...before, args.newString, ...after].join('\n')
-        await writeTextFile(resolved, updated)
+        await writeText(resolved, updated)
         return {
           content: [{
             type: 'text',

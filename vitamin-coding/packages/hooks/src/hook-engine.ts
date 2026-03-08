@@ -1,29 +1,106 @@
 // Hook 执行引擎 — 注册、优先级排序、链式执行
 import { createLogger } from '@vitamin/shared'
 
-import type { HookHandler, HookInput, HookOutput, HookRegistration, HookTiming } from './types'
+import type { HookInput, HookOutput, HookRegistration, HookTiming } from './types'
 
 const log = createLogger('hooks')
 
+const HOOK_TIMINGS: HookTiming[] = [
+  'chat.message.before',
+  'chat.message.after',
+  'tool.execute.before',
+  'tool.execute.after',
+  'messages.transform',
+  'chat.params',
+  'session.created',
+  'session.deleted',
+  'session.idle',
+  'session.error',
+  'stream.start',
+  'stream.end',
+  'compaction.before',
+  'compaction.after',
+  'background.start',
+  'background.end',
+  'extension.loaded',
+  'extension.error',
+]
+
+interface RuntimeHook {
+  name: string
+  timing: HookTiming
+  priority: number
+  enabled: boolean
+  run: (input: unknown, output: unknown) => void | Promise<void>
+  emit: (input: unknown) => void | Promise<void>
+}
+
+export interface RegisteredHookInfo {
+  name: string
+  timing: HookTiming
+  priority: number
+  enabled: boolean
+}
+
+function createHookBuckets(): Record<HookTiming, RuntimeHook[]> {
+  return {
+    'chat.message.before': [],
+    'chat.message.after': [],
+    'tool.execute.before': [],
+    'tool.execute.after': [],
+    'messages.transform': [],
+    'chat.params': [],
+    'session.created': [],
+    'session.deleted': [],
+    'session.idle': [],
+    'session.error': [],
+    'stream.start': [],
+    'stream.end': [],
+    'compaction.before': [],
+    'compaction.after': [],
+    'background.start': [],
+    'background.end': [],
+    'extension.loaded': [],
+    'extension.error': [],
+  }
+}
+
 export class HookEngine {
-  private readonly hooks = new Map<HookTiming, HookRegistration[]>()
+  private readonly hooks = createHookBuckets()
   private readonly disabled = new Set<string>()
 
   // 注册 Hook
   register<T extends HookTiming>(registration: HookRegistration<T>): void {
-    const list = this.hooks.get(registration.timing) ?? []
-    list.push(registration as unknown as HookRegistration)
-    this.hooks.set(registration.timing, list)
+    const run = (input: unknown, output: unknown): void | Promise<void> => {
+      const handler = registration.handler as (input: HookInput<T>, output: HookOutput<T>) => void | Promise<void>
+      return handler(input as HookInput<T>, output as HookOutput<T>)
+    }
+
+    const emit = (input: unknown): void | Promise<void> => {
+      const handler = registration.handler as (input: HookInput<T>) => void | Promise<void>
+      return handler(input as HookInput<T>)
+    }
+
+    const list = this.hooks[registration.timing]
+    list.push({
+      name: registration.name,
+      timing: registration.timing,
+      priority: registration.priority,
+      enabled: registration.enabled,
+      run,
+      emit,
+    })
     log.debug(`Hook registered: ${registration.name} (timing=${registration.timing}, priority=${registration.priority})`)
   }
 
   // 注销 Hook
   unregister(name: string): boolean {
     let removed = false
-    for (const [timing, list] of this.hooks) {
+    for (const timing of HOOK_TIMINGS) {
+      const list = this.hooks[timing]
       const filtered = list.filter((hook) => hook.name !== name)
       if (filtered.length < list.length) {
-        this.hooks.set(timing, filtered)
+        this.hooks[timing] = filtered
         removed = true
       }
     }
@@ -41,13 +118,13 @@ export class HookEngine {
   }
 
   // 查询指定时机已注册的 Hook
-  getRegistered(timing?: HookTiming): HookRegistration[] {
+  getRegistered(timing?: HookTiming): RegisteredHookInfo[] {
     if (timing) {
-      return [...(this.hooks.get(timing) ?? [])]
+      return this.hooks[timing].map(toHookInfo)
     }
-    const all: HookRegistration[] = []
-    for (const list of this.hooks.values()) {
-      all.push(...list)
+    const all: RegisteredHookInfo[] = []
+    for (const key of HOOK_TIMINGS) {
+      all.push(...this.hooks[key].map(toHookInfo))
     }
     return all
   }
@@ -63,7 +140,7 @@ export class HookEngine {
 
     for (const hook of hooks) {
       try {
-        await (hook.handler as HookHandler<T>)(input, output as never)
+        await hook.run(input, output)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         log.error(`Hook ${hook.name} (timing=${timing}) failed: ${message}`)
@@ -82,7 +159,7 @@ export class HookEngine {
 
     for (const hook of hooks) {
       try {
-        await (hook.handler as (input: HookInput<T>) => void | Promise<void>)(input)
+        await hook.emit(input)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         log.error(`Hook ${hook.name} (timing=${timing}) failed: ${message}`)
@@ -92,16 +169,27 @@ export class HookEngine {
 
   // 清空所有 Hook
   clear(): void {
-    this.hooks.clear()
+    for (const timing of HOOK_TIMINGS) {
+      this.hooks[timing] = []
+    }
     this.disabled.clear()
   }
 
   // 按 priority 排序，排除已禁用的 Hook
-  private getSortedHooks(timing: HookTiming): HookRegistration[] {
-    const list = this.hooks.get(timing) ?? []
+  private getSortedHooks<T extends HookTiming>(timing: T): RuntimeHook[] {
+    const list = this.hooks[timing]
     return list
       .filter((hook) => hook.enabled && !this.disabled.has(hook.name))
       .sort((a, b) => a.priority - b.priority)
+  }
+}
+
+function toHookInfo(hook: RuntimeHook): RegisteredHookInfo {
+  return {
+    name: hook.name,
+    timing: hook.timing,
+    priority: hook.priority,
+    enabled: hook.enabled,
   }
 }
 

@@ -13,6 +13,19 @@ import type {
 
 const logger = createLogger('mcp:client')
 
+async function buildTransportHeaders(
+  config: McpServerConfig,
+  oauthManager: OAuthManager,
+): Promise<Record<string, string>> {
+  const headers = { ...(config.headers ?? {}) }
+  if (!config.oauth) return headers
+
+  const token = await oauthManager.getToken(config.name, config.oauth)
+  headers['Authorization'] = `${token.tokenType} ${token.accessToken}`
+  logger.debug(`MCP ${config.name}: OAuth 令牌已注入`)
+  return headers
+}
+
 // 根据配置创建传输（含 OAuth 令牌注入）
 async function createTransportForConfig(
   config: McpServerConfig,
@@ -30,17 +43,20 @@ async function createTransportForConfig(
     if (!config.url) {
       throw new McpError(`MCP ${config.name}: http 传输需要 url 参数`, { code: 'MCP_MISSING_URL' })
     }
-
-    // 如果配置了 OAuth，自动获取令牌并注入 Authorization header
-    const headers = { ...(config.headers ?? {}) }
-    if (config.oauth) {
-      const token = await oauthManager.getToken(config.name, config.oauth)
-      headers['Authorization'] = `${token.tokenType} ${token.accessToken}`
-      logger.debug(`MCP ${config.name}: OAuth 令牌已注入`)
-    }
+    const headers = await buildTransportHeaders(config, oauthManager)
 
     const { createHttpTransport } = await import('./transports/http')
     return createHttpTransport(config.url, headers)
+  }
+
+  if (config.transport === 'sse') {
+    if (!config.url) {
+      throw new McpError(`MCP ${config.name}: sse 传输需要 url 参数`, { code: 'MCP_MISSING_URL' })
+    }
+    const headers = await buildTransportHeaders(config, oauthManager)
+
+    const { createSseTransport } = await import('./transports/sse')
+    return createSseTransport(config.url, headers)
   }
 
   throw new McpError(`MCP ${config.name}: 不支持的传输类型 ${config.transport}`, { code: 'MCP_UNSUPPORTED_TRANSPORT' })

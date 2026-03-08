@@ -41,8 +41,8 @@ resolveProjectPath(base: string, relative: string): string
 isInsideDirectory(child: string, parent: string): boolean
 
 // 文件工具
-readTextFile(path: string): Promise<string | undefined>
-writeTextFile(path: string, content: string): Promise<void>
+readText(path: string): Promise<string | undefined>
+writeText(path: string, content: string): Promise<void>
 fileExists(path: string): Promise<boolean>
 ```
 

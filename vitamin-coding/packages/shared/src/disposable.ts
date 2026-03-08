@@ -1,5 +1,4 @@
 // 资源释放协议，支持 ECMAScript using / await using 语义
-
 // 同步可释放资源
 export interface Disposable {
   [Symbol.dispose](): void

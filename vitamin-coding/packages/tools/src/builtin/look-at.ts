@@ -4,7 +4,7 @@ import { extname } from 'node:path'
 import { z } from 'zod'
 
 import type { AgentTool, ToolResult } from '@vitamin/agent'
-import { resolvePath, normalizePath, pathExists } from '@vitamin/shared'
+import { resolvePath, normalizePath, exists } from '@vitamin/shared'
 
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'])
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -26,7 +26,7 @@ export function createLookAtTool(projectRoot: string): AgentTool<LookAtArgs> {
     async execute(_id, args, _signal): Promise<ToolResult> {
       const resolved = normalizePath(resolvePath(projectRoot, args.path))
 
-      if (!(await pathExists(resolved))) {
+      if (!(await exists(resolved))) {
         return { content: [{ type: 'text', text: `Image not found: ${args.path}` }], isError: true }
       }
 

@@ -11,12 +11,12 @@ pnpm add @vitamin/shared
 ## Usage
 
 ```typescript
-import { createLogger, readTextFile, TypedEventEmitter, VitaminError } from '@vitamin/shared'
+import { createLogger, readText, TypedEventEmitter, VitaminError } from '@vitamin/shared'
 
 const log = createLogger('my-module')
 log.info('started')
 
-const content = await readTextFile('/path/to/file.txt')
+const content = await readText('/path/to/file.txt')
 ```
 
 ## Key Exports
@@ -24,7 +24,7 @@ const content = await readTextFile('/path/to/file.txt')
 | Export | Description |
 |--------|-------------|
 | `createLogger`, `getRootLogger` | Structured logger |
-| `readTextFile`, `writeTextFile`, `mkdirp`, `rimraf`, `pathExists` | Filesystem helpers |
+| `readText`, `writeText`, `mkdirp`, `rimraf`, `exists` | Filesystem helpers |
 | `normalizePath`, `resolvePath`, `findProjectRoot` | Path utilities |
 | `TypedEventEmitter` | Generic typed event emitter |
 | `VitaminError`, `ConfigError`, `ProviderError`, ... | Error hierarchy (10 types) |

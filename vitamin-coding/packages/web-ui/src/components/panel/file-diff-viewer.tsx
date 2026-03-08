@@ -1,4 +1,4 @@
-import { Box, Paper, ScrollArea, Text, useMantineTheme } from '@mantine/core'
+import { Box, Paper, ScrollArea, Text, useComputedColorScheme, useMantineTheme } from '@mantine/core'
 import type { VitaminColorTokens } from '@vitamin/ui-kit'
 
 interface FileDiffViewerProps {
@@ -48,9 +48,10 @@ const LINE_COLORS_DARK: Record<DiffLine['type'], { bg: string; color: string }> 
 
 export function FileDiffViewer(props: FileDiffViewerProps) {
   const theme = useMantineTheme()
+  const colorScheme = useComputedColorScheme('light')
   const tokens = theme.other as VitaminColorTokens
   const lines = parseDiffLines(props.diff)
-  const lineColors = theme.colorScheme === 'dark' ? LINE_COLORS_DARK : LINE_COLORS_LIGHT
+  const lineColors = colorScheme === 'dark' ? LINE_COLORS_DARK : LINE_COLORS_LIGHT
 
   if (lines.length === 0) {
     return (

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { extname } from 'node:path'
 
-import { isFile, pathExists, readTextFile } from '@vitamin/shared'
+import { isFile, exists, readText } from '@vitamin/shared'
 import { normalizePath, resolvePath } from '@vitamin/shared'
 // read 工具 — 读取文件内容（文本 + 图片）
 import { z } from 'zod'
@@ -36,7 +36,7 @@ export function createReadTool(projectRoot: string): AgentTool<ReadArgs> {
       const normalizedPath = normalizePath(resolvedPath)
 
       // 检查文件是否存在
-      if (!(await pathExists(normalizedPath))) {
+      if (!(await exists(normalizedPath))) {
         return {
           content: [{ type: 'text', text: `File not found: ${args.path}` }],
           isError: true,
@@ -57,7 +57,7 @@ export function createReadTool(projectRoot: string): AgentTool<ReadArgs> {
       }
 
       // 文本文件处理
-      return readTextFileWithRange(normalizedPath, args.path, args.startLine, args.endLine)
+      return readTextWithRange(normalizedPath, args.path, args.startLine, args.endLine)
     },
   }
 }
@@ -109,14 +109,14 @@ async function readImageFile(absolutePath: string, displayPath: string): Promise
 }
 
 // 读取文本文件并按行范围裁切
-async function readTextFileWithRange(
+async function readTextWithRange(
   absolutePath: string,
   displayPath: string,
   startLineArg?: number,
   endLineArg?: number,
 ): Promise<ToolResult> {
   try {
-    const content = await readTextFile(absolutePath)
+    const content = await readText(absolutePath)
     if (content === undefined) {
       return {
         content: [{ type: 'text', text: `Failed to read file: ${displayPath}` }],

@@ -1,11 +1,29 @@
 import { Router } from 'express'
 
+interface AgentRegistryWithGetAll {
+  getAll(): unknown[]
+}
+
+interface AgentRegistryWithGetStatus {
+  getStatus(id: string): unknown
+}
+
+function hasGetAll(value: unknown): value is AgentRegistryWithGetAll {
+  return typeof value === 'object' && value !== null && 'getAll' in value
+    && typeof (value as AgentRegistryWithGetAll).getAll === 'function'
+}
+
+function hasGetStatus(value: unknown): value is AgentRegistryWithGetStatus {
+  return typeof value === 'object' && value !== null && 'getStatus' in value
+    && typeof (value as AgentRegistryWithGetStatus).getStatus === 'function'
+}
+
 export function createAgentsRouter(agentRegistry?: unknown): Router {
   const router = Router()
 
   router.get('/', (_req, res) => {
-    if (agentRegistry && typeof (agentRegistry as any).getAll === 'function') {
-      const agents = (agentRegistry as { getAll(): unknown[] }).getAll()
+    if (hasGetAll(agentRegistry)) {
+      const agents = agentRegistry.getAll()
       res.json(agents)
     } else {
       res.json([{ id: 'demo-agent', type: 'primary' }])
@@ -21,8 +39,8 @@ export function createAgentsRouter(agentRegistry?: unknown): Router {
     const agentId = req.params.id
 
     // 尝试从注册表获取实时状态
-    if (agentRegistry && typeof (agentRegistry as any).getStatus === 'function') {
-      const status = (agentRegistry as { getStatus(id: string): unknown }).getStatus(agentId)
+    if (hasGetStatus(agentRegistry)) {
+      const status = agentRegistry.getStatus(agentId)
       if (status) {
         res.json(status)
         return

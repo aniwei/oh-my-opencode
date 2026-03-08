@@ -9,7 +9,7 @@ import { homedir } from 'node:os'
 // 5. 扩展默认值
 // 6. 框架默认值
 import { join } from 'node:path'
-import { createLogger, readTextFile } from '@vitamin/shared'
+import { createLogger, readText } from '@vitamin/shared'
 import { DEFAULT_CONFIG } from './defaults'
 import { mergeConfigLayers } from './merger'
 import { migrateConfig } from './migrator'
@@ -100,7 +100,7 @@ async function loadFileConfig(
   path: string,
   warnings: ConfigWarning[],
 ): Promise<{ config: Partial<VitaminConfig>; exists: boolean }> {
-  const raw = await readTextFile(path)
+  const raw = await readText(path)
   if (raw === undefined) {
     return { config: {}, exists: false }
   }

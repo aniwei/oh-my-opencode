@@ -1,7 +1,7 @@
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { writeTextFile } from '@vitamin/shared'
+import { writeText } from '@vitamin/shared'
 import { afterEach, describe, expect, it } from 'vitest'
 import { loadConfig } from '../src/loader'
 
@@ -37,7 +37,7 @@ describe('loadConfig', () => {
       try {
         const configDir = join(tempDir, '.vitamin')
         await mkdir(configDir, { recursive: true })
-        await writeTextFile(
+        await writeText(
           join(configDir, 'config.jsonc'),
           `{
             // project config
@@ -62,7 +62,7 @@ describe('loadConfig', () => {
       try {
         const configDir = join(tempDir, '.vitamin')
         await mkdir(configDir, { recursive: true })
-        await writeTextFile(join(configDir, 'config.jsonc'), '{ "model": "project-model" }')
+        await writeText(join(configDir, 'config.jsonc'), '{ "model": "project-model" }')
 
         const { config } = await loadConfig({
           cwd: tempDir,
@@ -81,7 +81,7 @@ describe('loadConfig', () => {
       try {
         const configDir = join(tempDir, '.vitamin')
         await mkdir(configDir, { recursive: true })
-        await writeTextFile(join(configDir, 'config.jsonc'), '{ "model": "project-model" }')
+        await writeText(join(configDir, 'config.jsonc'), '{ "model": "project-model" }')
 
         const { config } = await loadConfig({
           cwd: tempDir,
@@ -104,7 +104,7 @@ describe('loadConfig', () => {
       try {
         const configDir = join(tempDir, '.vitamin')
         await mkdir(configDir, { recursive: true })
-        await writeTextFile(join(configDir, 'config.jsonc'), '{ "model": "project-model" }')
+        await writeText(join(configDir, 'config.jsonc'), '{ "model": "project-model" }')
 
         process.env.VITAMIN_MODEL = 'env-model'
         process.env.VITAMIN_LOG_LEVEL = 'debug'
@@ -140,7 +140,7 @@ describe('loadConfig', () => {
       try {
         const configDir = join(tempDir, '.vitamin')
         await mkdir(configDir, { recursive: true })
-        await writeTextFile(
+        await writeText(
           join(configDir, 'config.jsonc'),
           `{
   "log_level": "debug",
@@ -165,7 +165,7 @@ describe('loadConfig', () => {
       try {
         const configDir = join(tempDir, '.vitamin')
         await mkdir(configDir, { recursive: true })
-        await writeTextFile(
+        await writeText(
           join(configDir, 'config.jsonc'),
           '{ "log_level": "info", "unknown_field": true }',
         )

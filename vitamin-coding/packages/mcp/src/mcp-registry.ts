@@ -207,11 +207,20 @@ export class McpRegistry {
     const reconnected: string[] = []
 
     for (const [name, entry] of this.entries) {
-      if (!entry.client.isConnected()) {
+      const isConnected = entry.client.isConnected()
+      if (!isConnected) {
         const success = await this.reconnect(name)
-        if (success) {
-          reconnected.push(name)
-        }
+        if (success) reconnected.push(name)
+        continue
+      }
+
+      // 主动探测，避免底层连接已断开但本地状态未及时更新
+      try {
+        await entry.client.listTools()
+      } catch (error) {
+        logger.warn(`MCP ${name} 健康检查失败，准备重连: ${String(error)}`)
+        const success = await this.reconnect(name)
+        if (success) reconnected.push(name)
       }
     }
 

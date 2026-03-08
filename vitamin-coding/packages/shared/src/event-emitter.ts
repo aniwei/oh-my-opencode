@@ -1,11 +1,14 @@
 // 事件映射约束：每个键映射到一个处理函数
-export type EventMap = {
+export type Events = {
   [event: string]: (...args: never[]) => void
 }
 
+// 兼容旧命名
+export type EventMap = Events
+
 // 类型安全的事件发射器，支持泛型事件映射
 // 在编译时拒绝不正确的事件名称和载荷类型
-export class TypedEventEmitter<TEvents extends EventMap> {
+export class TypedEventEmitter<TEvents extends Events> {
   private readonly listeners = new Map<keyof TEvents, Set<(...args: never[]) => void>>()
 
   // 订阅事件，返回取消订阅函数
@@ -35,11 +38,11 @@ export class TypedEventEmitter<TEvents extends EventMap> {
 
   // 仅订阅事件的下一次触发，返回取消订阅函数
   once<K extends keyof TEvents>(event: K, handler: TEvents[K]): () => void {
-    const wrapper = ((...args: Parameters<TEvents[K]>) => {
-      this.off(event, wrapper as TEvents[K])
+    const once = ((...args: Parameters<TEvents[K]>) => {
+      this.off(event, once as TEvents[K])
       ;(handler as (...args: Parameters<TEvents[K]>) => void)(...args)
     }) as TEvents[K]
-    return this.on(event, wrapper)
+    return this.on(event, once)
   }
 
   // 移除所有监听器，可选按事件名过滤

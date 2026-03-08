@@ -23,6 +23,15 @@
   - `vitamin-coding/packages/ai/src/utils/http-client.ts`
   - `vitamin-coding/packages/ai/package.json`
 
+3. 质量守卫自动化（类型安全）
+- 现状变更：
+  - 新增 `scripts/check-type-safety-guards.ts`
+  - CI 强制检查 `as any` / `@ts-ignore` / `@ts-expect-error` / 空 catch
+  - `unknown as` 先纳入债务指标统计（可通过 `--strict-unknown-as` 进入强约束）
+- 代码位置：
+  - `vitamin-coding/scripts/check-type-safety-guards.ts`
+  - `vitamin-coding/.github/workflows/ci.yml`
+
 ---
 
 ## 2. packages 级成熟度结论

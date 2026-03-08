@@ -2,7 +2,7 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { pathExists } from '@vitamin/shared'
+import { exists } from '@vitamin/shared'
 
 import type { HookRegistration, ToolExecuteBeforeInput, ToolExecuteBeforeOutput } from '../../types'
 
@@ -37,7 +37,7 @@ async function loadRules(projectRoot: string): Promise<string | null> {
   }
 
   const rulesDir = join(projectRoot, '.rules')
-  if (!(await pathExists(rulesDir))) {
+  if (!(await exists(rulesDir))) {
     cachedRules = null
     cacheProjectRoot = projectRoot
     return null

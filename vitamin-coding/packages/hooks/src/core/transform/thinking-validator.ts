@@ -11,7 +11,7 @@ export function createThinkingValidatorHook(): HookRegistration<'messages.transf
       // 遍历消息，修复/移除无效的 thinking block
       output.messages = output.messages.map((msg) => {
         if (!isAssistantMessage(msg)) return msg
-        const content = (msg as unknown as Record<string, unknown>).content
+        const content = getAssistantContent(msg)
         if (!Array.isArray(content)) return msg
 
         // 过滤掉空 thinking block
@@ -31,4 +31,9 @@ export function createThinkingValidatorHook(): HookRegistration<'messages.transf
 function isAssistantMessage(msg: unknown): boolean {
   if (typeof msg !== 'object' || msg === null) return false
   return (msg as Record<string, unknown>).role === 'assistant'
+}
+
+function getAssistantContent(msg: unknown): unknown {
+  if (typeof msg !== 'object' || msg === null) return undefined
+  return (msg as Record<string, unknown>).content
 }

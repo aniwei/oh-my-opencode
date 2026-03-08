@@ -9,12 +9,21 @@ import {
   createCategoryResolver,
   createTaskDispatcher,
 } from '@vitamin/orchestrator'
+import type { AgentTool } from '@vitamin/agent'
+import { z } from 'zod'
 import { createSessionManager } from '@vitamin/session'
 import { createExtensionRunner } from '@vitamin/extension'
 import type { ExtensionFactory } from '@vitamin/extension'
 import { createMcpRegistry } from '@vitamin/mcp'
 import { createAgentSession } from '@vitamin/coding-agent'
 import type { VitaminConfig } from '@vitamin/config'
+import {
+  createAnthropicProvider,
+  createCopilotProvider,
+  createGoogleProvider,
+  createOpenAIResponsesProvider,
+  createProviderRegistry,
+} from '@vitamin/ai'
 
 import { createAgentStream } from './agent-stream'
 
@@ -28,9 +37,21 @@ import type {
   ExternalToolDefinition,
   AgentEventName,
   AgentEventHandler,
+  AgentEventPayloadMap,
 } from './types'
 
 const logger = createLogger('sdk:agent')
+
+function createDefaultProviderRegistry() {
+  const providerRegistry = createProviderRegistry()
+
+  providerRegistry.register('anthropic-messages', createAnthropicProvider)
+  providerRegistry.register('openai-responses', createOpenAIResponsesProvider)
+  providerRegistry.register('google-generative-ai', createGoogleProvider)
+  providerRegistry.register('github-copilot', createCopilotProvider)
+
+  return providerRegistry
+}
 
 function inferModelTransport(modelId: string): Pick<Model, 'api' | 'provider' | 'baseUrl'> {
   if (modelId.startsWith('openai/')) {
@@ -92,6 +113,7 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
   // Step 2: 初始化子系统
   const toolRegistry = createToolRegistry()
   const hookEngine = createHookEngine()
+  const providerRegistry = createDefaultProviderRegistry()
   const agentRegistry = createAgentRegistry()
   const backgroundManager = createBackgroundManager()
   const categoryResolver = createCategoryResolver()
@@ -107,6 +129,9 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
     backgroundManager,
     resolveModel: (_reg) => createPlaceholderModel(options.model),
     resolveTools: (_reg) => toolRegistry.getAll(),
+    defaultFactoryOptions: {
+      providerRegistry,
+    },
   })
 
   registerBuiltinTools(toolRegistry, options.projectDir)
@@ -129,6 +154,7 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
 
   const subsystems = {
     config: config as VitaminConfig,
+    providerRegistry,
     toolRegistry,
     hookEngine,
     agentRegistry,
@@ -148,7 +174,8 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
   })
 
   let disposed = false
-  const eventListeners = new Map<string, Set<(...args: any[]) => void>>()
+  type AnyAgentEventHandler = (payload: AgentEventPayloadMap[AgentEventName]) => void
+  const eventListeners = new Map<AgentEventName, Set<AnyAgentEventHandler>>()
 
   // Step 5: 返回 VitaminAgent 实例
   const agent: VitaminAgent = {
@@ -248,16 +275,17 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
     },
 
     registerTool(tool: ExternalToolDefinition): () => void {
-      const agentTool = {
+      const agentTool: AgentTool<Record<string, unknown>> = {
         name: tool.name,
         description: tool.description,
-        parameters: tool.parameters,
-        execute: async (args: Record<string, unknown>) => {
+        // SDK 外部工具使用宽松对象参数，由调用方自行校验
+        parameters: z.record(z.string(), z.unknown()),
+        execute: async (_id, args) => {
           const result = await tool.execute(args)
-          return { content: result, isError: false }
+          return { content: [{ type: 'text', text: result }], isError: false }
         },
       }
-      toolRegistry.register(agentTool as any)
+      toolRegistry.register(agentTool)
       logger.info(`工具已注册: ${tool.name}`)
 
       return () => {
@@ -267,13 +295,16 @@ export async function createVitaminAgent(options: VitaminAgentOptions): Promise<
     },
 
     on<E extends AgentEventName>(event: E, handler: AgentEventHandler<E>): () => void {
-      if (!eventListeners.has(event)) {
-        eventListeners.set(event, new Set())
+      let handlers = eventListeners.get(event)
+      if (!handlers) {
+        handlers = new Set<AnyAgentEventHandler>()
+        eventListeners.set(event, handlers)
       }
-      eventListeners.get(event)!.add(handler as any)
+      handlers.add(handler as AnyAgentEventHandler)
 
       return () => {
-        eventListeners.get(event)?.delete(handler as any)
+        const currentHandlers = eventListeners.get(event)
+        currentHandlers?.delete(handler as AnyAgentEventHandler)
       }
     },
   }

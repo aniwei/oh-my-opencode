@@ -21,7 +21,7 @@ export type {
 } from './types'
 
 export { TypedEventEmitter } from './event-emitter'
-export type { EventMap } from './event-emitter'
+export type { Events, EventMap } from './event-emitter'
 
 export {
   createDisposable,
@@ -34,11 +34,11 @@ export type { Disposable, AsyncDisposable } from './disposable'
 export { createLogger, getRootLogger, attachLogListener } from './logger'
 
 export {
-  readTextFile,
-  writeTextFile,
+  readText,
+  writeText,
   mkdirp,
   rimraf,
-  pathExists,
+  exists,
   isDirectory,
   isFile,
 } from './fs'
