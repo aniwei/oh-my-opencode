@@ -21,7 +21,7 @@ export function createSkillExecutorTool(executeFn?: ExecuteSkill): AgentTool<Ski
   return {
     name: 'skill-executor',
     description: '执行已加载的 Skill。Skill 是可复用的工作流模版。',
-    parameters: SkillExecutorArgsSchema as unknown as import('@vitamin/ai').ZodType<SkillExecutorArgs>,
+    parameters: SkillExecutorArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

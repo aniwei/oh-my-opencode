@@ -20,7 +20,7 @@ export function createTaskGetTool(get?: GetTask): AgentTool<TaskGetArgs> {
   return {
     name: 'task_get',
     description: '获取任务的当前状态和结果。',
-    parameters: TaskGetArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskGetArgs>,
+    parameters: TaskGetArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

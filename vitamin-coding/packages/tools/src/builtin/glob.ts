@@ -18,7 +18,7 @@ export function createGlobTool(projectRoot: string): AgentTool<GlobArgs> {
   return {
     name: 'glob',
     description: '按 glob 模式搜索文件。返回匹配的文件路径列表。',
-    parameters: GlobArgsSchema as unknown as import('@vitamin/ai').ZodType<GlobArgs>,
+    parameters: GlobArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

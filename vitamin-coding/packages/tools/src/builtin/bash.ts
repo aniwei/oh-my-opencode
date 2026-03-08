@@ -25,7 +25,7 @@ export function createBashTool(projectRoot: string): AgentTool<BashArgs> {
   return {
     name: 'bash',
     description: '执行 shell 命令并返回 stdout/stderr。默认超时 30 秒。',
-    parameters: BashArgsSchema as unknown as import('@vitamin/ai').ZodType<BashArgs>,
+    parameters: BashArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, signal): Promise<ToolResult> {

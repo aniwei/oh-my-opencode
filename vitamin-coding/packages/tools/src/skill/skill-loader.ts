@@ -19,7 +19,7 @@ export function createSkillLoaderTool(loadFn?: LoadSkill): AgentTool<SkillLoader
   return {
     name: 'skill-loader',
     description: '从 SKILL.md 文件加载 Skill 定义。加载后可通过 skill-executor 执行。',
-    parameters: SkillLoaderArgsSchema as unknown as import('@vitamin/ai').ZodType<SkillLoaderArgs>,
+    parameters: SkillLoaderArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

@@ -36,7 +36,7 @@ export function createDelegateTaskTool(
   return {
     name: 'delegate_task',
     description: '委派任务给子 Agent 执行。可指定 Agent 名称或任务类别。',
-    parameters: DelegateTaskArgsSchema as unknown as import('@vitamin/ai').ZodType<DelegateTaskArgs>,
+    parameters: DelegateTaskArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

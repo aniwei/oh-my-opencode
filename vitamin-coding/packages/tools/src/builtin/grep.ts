@@ -26,7 +26,7 @@ export function createGrepTool(projectRoot: string): AgentTool<GrepArgs> {
   return {
     name: 'grep',
     description: '在项目中搜索文本或正则模式。返回匹配的文件名、行号和内容。',
-    parameters: GrepArgsSchema as unknown as import('@vitamin/ai').ZodType<GrepArgs>,
+    parameters: GrepArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, signal): Promise<ToolResult> {

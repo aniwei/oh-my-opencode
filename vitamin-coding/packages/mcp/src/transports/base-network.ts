@@ -15,11 +15,11 @@ interface ClosableTransport {
   close(): Promise<void>
 }
 
-type ClientTransport = Parameters<Client['connect']>[0]
+type ClienT = Parameters<Client['connect']>[0]
 
-export abstract class BaseNetworkTransport<TTransport extends ClientTransport & ClosableTransport> implements McpTransport {
+export abstract class BaseTransport<T extends ClienT & ClosableTransport> implements McpTransport {
   private client: Client | null = null
-  private transport: TTransport | null = null
+  private transport: T | null = null
   private connected = false
 
   constructor(
@@ -29,7 +29,7 @@ export abstract class BaseNetworkTransport<TTransport extends ClientTransport & 
 
   protected abstract readonly transportType: string
 
-  protected abstract createTransport(requestInit: RequestInit): TTransport
+  protected abstract createTransport(requestInit: RequestInit): T
 
   protected createClient(): Client {
     return new Client({ name: `vitamin-mcp-${this.transportType}`, version: '0.1.0' })

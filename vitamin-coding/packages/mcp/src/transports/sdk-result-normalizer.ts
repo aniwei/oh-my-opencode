@@ -4,6 +4,49 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+function toStringOrEmpty(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function toOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+function normalizeContentPart(part: Record<string, unknown>): McpContent {
+  const type = toStringOrEmpty(part.type)
+
+  if (type === 'text') {
+    return { type: 'text', text: toStringOrEmpty(part.text) }
+  }
+
+  if (type === 'image') {
+    return {
+      type: 'image',
+      data: toStringOrEmpty(part.data),
+      mimeType: toOptionalString(part.mimeType),
+    }
+  }
+
+  if (type === 'resource' && isRecord(part.resource)) {
+    const resource = part.resource
+    return {
+      type: 'resource',
+      text: typeof resource.text === 'string' ? resource.text : JSON.stringify(resource),
+      mimeType: toOptionalString(resource.mimeType),
+    }
+  }
+
+  if (type === 'audio') {
+    return {
+      type: 'resource',
+      text: '[audio content]',
+      mimeType: toOptionalString(part.mimeType),
+    }
+  }
+
+  return { type: 'text', text: JSON.stringify(part) }
+}
+
 export function normalizeToolsResult(result: unknown): McpToolDefinition[] {
   if (!isRecord(result)) return []
   const tools = Array.isArray(result.tools) ? result.tools : []
@@ -24,55 +67,7 @@ export function normalizeCallToolResult(result: unknown): McpToolCallResult {
   }
 
   const rawContent = Array.isArray(result.content) ? result.content : []
-  const content: McpContent[] = []
-
-  for (const part of rawContent) {
-    if (!isRecord(part)) continue
-    const type = typeof part.type === 'string' ? part.type : ''
-
-    if (type === 'text') {
-      content.push({ type: 'text', text: typeof part.text === 'string' ? part.text : '' })
-      continue
-    }
-
-    if (type === 'image') {
-      content.push({
-        type: 'image',
-        data: typeof part.data === 'string' ? part.data : '',
-        mimeType: typeof part.mimeType === 'string' ? part.mimeType : undefined,
-      })
-      continue
-    }
-
-    if (type === 'resource' && isRecord(part.resource)) {
-      const resource = part.resource
-      if (typeof resource.text === 'string') {
-        content.push({
-          type: 'resource',
-          text: resource.text,
-          mimeType: typeof resource.mimeType === 'string' ? resource.mimeType : undefined,
-        })
-      } else {
-        content.push({
-          type: 'resource',
-          text: JSON.stringify(resource),
-          mimeType: typeof resource.mimeType === 'string' ? resource.mimeType : undefined,
-        })
-      }
-      continue
-    }
-
-    if (type === 'audio') {
-      content.push({
-        type: 'resource',
-        text: '[audio content]',
-        mimeType: typeof part.mimeType === 'string' ? part.mimeType : undefined,
-      })
-      continue
-    }
-
-    content.push({ type: 'text', text: JSON.stringify(part) })
-  }
+  const content = rawContent.filter(isRecord).map(normalizeContentPart)
 
   return {
     content,

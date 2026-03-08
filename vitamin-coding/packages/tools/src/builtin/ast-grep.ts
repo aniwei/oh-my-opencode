@@ -25,7 +25,7 @@ export function createAstGrepTool(projectRoot: string): AgentTool<AstGrepArgs> {
   return {
     name: 'ast-grep',
     description: '使用 AST 模式搜索代码结构。比正则更精确地匹配代码模式。',
-    parameters: AstGrepArgsSchema as unknown as import('@vitamin/ai').ZodType<AstGrepArgs>,
+    parameters: AstGrepArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, signal): Promise<ToolResult> {

@@ -22,7 +22,7 @@ export function createInteractiveBashTool(projectRoot: string): AgentTool<Intera
   return {
     name: 'interactive-bash',
     description: '执行交互式终端命令，支持 stdin 输入和超时控制。',
-    parameters: InteractiveBashArgsSchema as unknown as import('@vitamin/ai').ZodType<InteractiveBashArgs>,
+    parameters: InteractiveBashArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, signal): Promise<ToolResult> {

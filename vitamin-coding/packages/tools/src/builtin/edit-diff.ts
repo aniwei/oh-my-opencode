@@ -18,7 +18,7 @@ export function createEditDiffTool(projectRoot: string): AgentTool<EditDiffArgs>
   return {
     name: 'edit-diff',
     description: '模糊匹配编辑：当 oldString 有微小差异时仍能匹配并替换。',
-    parameters: EditDiffArgsSchema as unknown as import('@vitamin/ai').ZodType<EditDiffArgs>,
+    parameters: EditDiffArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

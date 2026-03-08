@@ -20,7 +20,7 @@ export function createWriteTool(projectRoot: string): AgentTool<WriteArgs> {
   return {
     name: 'write',
     description: '创建或覆盖文件。自动创建不存在的父目录。',
-    parameters: WriteArgsSchema as unknown as import('@vitamin/ai').ZodType<WriteArgs>,
+    parameters: WriteArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

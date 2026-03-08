@@ -17,7 +17,7 @@ export function createBackgroundCancelTool(
   return {
     name: 'background_cancel',
     description: '取消一个正在运行的后台任务。',
-    parameters: BackgroundCancelArgsSchema as unknown as import('@vitamin/ai').ZodType<BackgroundCancelArgs>,
+    parameters: BackgroundCancelArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

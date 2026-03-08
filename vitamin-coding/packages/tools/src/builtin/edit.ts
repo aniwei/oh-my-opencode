@@ -19,7 +19,7 @@ export function createEditTool(projectRoot: string): AgentTool<EditArgs> {
   return {
     name: 'edit',
     description: '精确字符串替换编辑。oldString 必须在文件中唯一匹配。',
-    parameters: EditArgsSchema as unknown as import('@vitamin/ai').ZodType<EditArgs>,
+    parameters: EditArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

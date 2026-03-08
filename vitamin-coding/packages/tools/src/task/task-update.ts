@@ -19,7 +19,7 @@ export function createTaskUpdateTool(update?: UpdateTask): AgentTool<TaskUpdateA
   return {
     name: 'task_update',
     description: '更新任务状态：取消或重试任务。',
-    parameters: TaskUpdateArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskUpdateArgs>,
+    parameters: TaskUpdateArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

@@ -18,7 +18,7 @@ export function createHashlineEditTool(projectRoot: string): AgentTool<HashlineE
   return {
     name: 'hashline-edit',
     description: '基于行号 + 行哈希的精确编辑。先用 read 工具查看行内容，取其 SHA-256 前 8 位作为验证哈希。',
-    parameters: HashlineEditArgsSchema as unknown as import('@vitamin/ai').ZodType<HashlineEditArgs>,
+    parameters: HashlineEditArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

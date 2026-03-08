@@ -22,7 +22,7 @@ export function createSessionManagerTool(fns?: SessionManager): AgentTool<Sessio
   return {
     name: 'session-manager',
     description: '管理对话会话：列出、创建、删除、压缩会话。',
-    parameters: SessionManagerArgsSchema as unknown as import('@vitamin/ai').ZodType<SessionManagerArgs>,
+    parameters: SessionManagerArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

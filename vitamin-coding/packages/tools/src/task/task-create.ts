@@ -19,7 +19,7 @@ export function createTaskCreateTool(create?: CreateTask): AgentTool<TaskCreateA
   return {
     name: 'task_create',
     description: '创建一个后台任务。',
-    parameters: TaskCreateArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskCreateArgs>,
+    parameters: TaskCreateArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

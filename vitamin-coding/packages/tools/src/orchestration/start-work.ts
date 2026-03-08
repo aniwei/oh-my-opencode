@@ -15,7 +15,7 @@ export function createStartWorkTool(startWork?: StartWork): AgentTool<StartWorkA
   return {
     name: 'start_work',
     description: '启动一个已生成的计划的执行。Atlas 将按 DAG 拓扑并行执行计划步骤。',
-    parameters: StartWorkArgsSchema as unknown as import('@vitamin/ai').ZodType<StartWorkArgs>,
+    parameters: StartWorkArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

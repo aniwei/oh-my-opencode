@@ -20,7 +20,7 @@ export function createCallAgentTool(call?: CallAgent): AgentTool<CallAgentArgs> 
   return {
     name: 'call_agent',
     description: '直接调用指定 Agent 并等待结果。适用于需要特定 Agent 能力的场景。',
-    parameters: CallAgentArgsSchema as unknown as import('@vitamin/ai').ZodType<CallAgentArgs>,
+    parameters: CallAgentArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

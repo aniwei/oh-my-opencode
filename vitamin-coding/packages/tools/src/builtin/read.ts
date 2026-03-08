@@ -28,7 +28,7 @@ export function createReadTool(projectRoot: string): AgentTool<ReadArgs> {
   return {
     name: 'read',
     description: '读取文件内容。可选指定行范围。',
-    parameters: ReadArgsSchema as unknown as import('@vitamin/ai').ZodType<ReadArgs>,
+    parameters: ReadArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

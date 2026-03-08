@@ -20,7 +20,7 @@ export function createLookAtTool(projectRoot: string): AgentTool<LookAtArgs> {
   return {
     name: 'look-at',
     description: '查看图片/截图内容。传入图片路径，返回 base64 编码供多模态模型分析。',
-    parameters: LookAtArgsSchema as unknown as import('@vitamin/ai').ZodType<LookAtArgs>,
+    parameters: LookAtArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
@@ -55,8 +55,8 @@ export function createLookAtTool(projectRoot: string): AgentTool<LookAtArgs> {
       const content: ToolResult['content'] = [
         {
           type: 'image',
-          source: { type: 'base64', media_type: mediaType, data: base64 },
-        } as unknown as { type: 'text'; text: string },
+          source: { type: 'base64', mediaType, data: base64 },
+        },
       ]
 
       if (args.question) {

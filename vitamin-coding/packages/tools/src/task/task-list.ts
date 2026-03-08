@@ -21,7 +21,7 @@ export function createTaskListTool(listFn?: ListTasks): AgentTool<TaskListArgs> 
   return {
     name: 'task_list',
     description: '列出所有任务及其状态。',
-    parameters: TaskListArgsSchema as unknown as import('@vitamin/ai').ZodType<TaskListArgs>,
+    parameters: TaskListArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

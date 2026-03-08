@@ -23,7 +23,7 @@ export function createLsTool(projectRoot: string): AgentTool<LsArgs> {
   return {
     name: 'ls',
     description: '列出目录内容。可递归显示子目录结构。',
-    parameters: LsArgsSchema as unknown as import('@vitamin/ai').ZodType<LsArgs>,
+    parameters: LsArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

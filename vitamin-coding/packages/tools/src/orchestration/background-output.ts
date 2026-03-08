@@ -21,7 +21,7 @@ export function createBackgroundOutputTool(
   return {
     name: 'background_output',
     description: '获取后台任务的当前状态和输出。',
-    parameters: BackgroundOutputArgsSchema as unknown as import('@vitamin/ai').ZodType<BackgroundOutputArgs>,
+    parameters: BackgroundOutputArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {

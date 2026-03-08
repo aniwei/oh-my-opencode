@@ -21,7 +21,7 @@ export function createSkillMcpTool(callFn?: CallSkillMcp): AgentTool<SkillMcpArg
   return {
     name: 'skill-mcp',
     description: '调用 Skill 定义中声明的 MCP 服务器工具。',
-    parameters: SkillMcpArgsSchema as unknown as import('@vitamin/ai').ZodType<SkillMcpArgs>,
+    parameters: SkillMcpArgsSchema,
     visibility: 'always',
 
     async execute(_id, args, _signal): Promise<ToolResult> {
