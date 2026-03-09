@@ -25,6 +25,7 @@
     "@vitamin/agent": "workspace:*",
     "@vitamin/hooks": "workspace:*",
     "@vitamin/tools": "workspace:*",
+    "@vitamin/ai": "workspace:*",
     "zod": "^4.0.0"
   },
   "publishConfig": {

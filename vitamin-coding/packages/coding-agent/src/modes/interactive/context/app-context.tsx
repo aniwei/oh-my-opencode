@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, type ReactNode } from 'react'
-import { uiReducer, initialState } from './reducer.js'
-import type { UIState } from './types.js'
-import type { UIAction } from './actions.js'
+import { uiReducer, initialState } from './reducer'
+import type { UIState } from './types'
+import type { UIAction } from './actions'
 
 interface AppContextValue {
   state: UIState

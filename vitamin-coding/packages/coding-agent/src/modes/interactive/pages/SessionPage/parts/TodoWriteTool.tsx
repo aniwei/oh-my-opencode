@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink'
-import { theme } from '../../../theme.js'
-import { TodoItem } from '../../../components/TodoItem.js'
+import { theme } from '../../../theme'
+import { TodoItem } from '../../../components/TodoItem'
 
 interface TodoWriteToolProps {
   todos: Array<{ status: string; content: string }>

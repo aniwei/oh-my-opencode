@@ -120,4 +120,10 @@ export interface RPCClientOptions {
   socketPath?: string
   host?: string
   port?: number
+  reconnect?: {
+    enabled?: boolean
+    maxAttempts?: number
+    baseDelay?: number
+    maxDelay?: number
+  }
 }

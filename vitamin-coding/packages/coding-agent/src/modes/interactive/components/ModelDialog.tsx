@@ -1,4 +1,4 @@
-import { DialogSelect, type SelectOption } from '../ui/DialogSelect.js'
+import { DialogSelect, type SelectOption } from '../ui/DialogSelect'
 
 interface ModelEntry {
   id: string

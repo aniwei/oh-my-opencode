@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink'
-import { Prompt } from '../components/Prompt/index.js'
-import { Tips } from '../components/Tips.js'
-import { useTheme } from '../theme.js'
+import { Prompt } from '../components/Prompt/index'
+import { Tips } from '../components/Tips'
+import { useTheme } from '../theme'
 
 /**
  * Home page — centered Logo + Prompt + Tips + bottom status bar.

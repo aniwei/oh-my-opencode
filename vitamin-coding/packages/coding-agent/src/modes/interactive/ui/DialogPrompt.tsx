@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Box, Text, useInput } from 'ink'
 import TextInput from 'ink-text-input'
-import { theme } from '../theme.js'
+import { theme } from '../theme'
 
 interface DialogPromptProps {
   title: string

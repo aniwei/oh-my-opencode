@@ -2,11 +2,11 @@ import { useState, useCallback, useMemo } from 'react'
 import { Box, Text, useInput } from 'ink'
 import TextInput from 'ink-text-input'
 import { useNavigate } from 'react-router'
-import { useApp } from '../../context/app-context.js'
-import { useTheme } from '../../theme.js'
-import { usePromptHistory } from '../../hooks/use-prompt-history.js'
-import { usePromptStash } from '../../hooks/use-prompt-stash.js'
-import { Autocomplete } from './Autocomplete.js'
+import { useApp } from '../../context/app-context'
+import { useTheme } from '../../theme'
+import { usePromptHistory } from '../../hooks/use-prompt-history'
+import { usePromptStash } from '../../hooks/use-prompt-stash'
+import { Autocomplete } from './Autocomplete'
 
 type AutocompleteItem = {
   label: string

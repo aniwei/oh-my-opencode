@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink'
 import InkSpinner from 'ink-spinner'
 import type { ReactNode } from 'react'
-import { theme } from '../theme.js'
+import { theme } from '../theme'
 
 interface SpinnerProps {
   children?: ReactNode

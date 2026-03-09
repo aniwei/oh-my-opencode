@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
 import { Box, Text, useInput } from 'ink'
 import TextInput from 'ink-text-input'
-import { useApp } from '../context/app-context.js'
-import { theme } from '../theme.js'
+import { useApp } from '../context/app-context'
+import { theme } from '../theme'
 
 interface SessionRenameDialogProps {
   sessionID: string

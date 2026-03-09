@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import { Box, Text, useInput } from 'ink'
 import TextInput from 'ink-text-input'
 import fuzzysort from 'fuzzysort'
-import { theme } from '../theme.js'
+import { theme } from '../theme'
 
 export interface SelectOption {
   label: string

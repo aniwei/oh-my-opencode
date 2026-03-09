@@ -1,11 +1,11 @@
 import { Box } from 'ink'
 import { useParams, useLocation } from 'react-router'
-import { useApp } from '../../context/app-context.js'
-import { Header } from './Header.js'
-import { Footer } from './Footer.js'
-import { Sidebar } from './Sidebar.js'
-import { MessageList } from './MessageList.js'
-import { Prompt } from '../../components/Prompt/index.js'
+import { useApp } from '../../context/app-context'
+import { Header } from './Header'
+import { Footer } from './Footer'
+import { Sidebar } from './Sidebar'
+import { MessageList } from './MessageList'
+import { Prompt } from '../../components/Prompt/index'
 
 /**
  * Session page — main layout: Header + (Messages + Sidebar) + Prompt + Footer.

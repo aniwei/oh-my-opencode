@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
-import { useApp } from '../context/app-context.js'
+import { useApp } from '../context/app-context'
 
 /**
  * Session operations — compact, fork, timeline, undo, redo.

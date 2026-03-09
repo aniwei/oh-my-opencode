@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useApp } from '../context/app-context.js'
+import { useApp } from '../context/app-context'
 
 /**
  * Scroll control hook — manages scroll lock state via UIState.

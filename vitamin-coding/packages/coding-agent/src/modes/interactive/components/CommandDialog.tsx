@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { useApp } from '../context/app-context.js'
-import { DialogSelect, type SelectOption } from '../ui/DialogSelect.js'
+import { useApp } from '../context/app-context'
+import { DialogSelect, type SelectOption } from '../ui/DialogSelect'
 
 /**
  * Default command entries — will be extended when data layer is connected.

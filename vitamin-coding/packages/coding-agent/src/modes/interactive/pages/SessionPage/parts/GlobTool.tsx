@@ -1,5 +1,5 @@
 import { Box, Text } from 'ink'
-import { theme } from '../../../theme.js'
+import { theme } from '../../../theme'
 
 interface GlobToolProps {
   pattern: string

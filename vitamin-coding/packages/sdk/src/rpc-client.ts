@@ -33,6 +33,15 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
 
   let buffer = ''
 
+  // 重连状态
+  let reconnecting = false
+  let reconnectAttempt = 0
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  const maxReconnectAttempts = options.reconnect?.maxAttempts ?? 5
+  const baseDelay = options.reconnect?.baseDelay ?? 1000
+  const maxDelay = options.reconnect?.maxDelay ?? 30000
+  const autoReconnect = options.reconnect?.enabled ?? false
+
   // 缓存的 Agent 状态（通过 RPC 事件或 prompt 结果更新）
   let cachedState: VitaminAgentState = {
     model: 'unknown',
@@ -72,7 +81,12 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
 
   async function send(method: string, params?: unknown): Promise<unknown> {
     if (!socket || socket.destroyed) {
-      throw new Error('RPC client not connected')
+      if (autoReconnect && !reconnecting) {
+        await attemptReconnect()
+      }
+      if (!socket || socket.destroyed) {
+        throw new Error('RPC client not connected')
+      }
     }
 
     const id = nextId++
@@ -86,6 +100,67 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
     return new Promise((resolve, reject) => {
       pending.set(id, { resolve, reject })
       socket!.write(JSON.stringify(request) + '\n')
+    })
+  }
+
+  function scheduleReconnect(): void {
+    if (reconnecting || reconnectAttempt >= maxReconnectAttempts) return
+    reconnecting = true
+    const delay = Math.min(baseDelay * 2 ** reconnectAttempt, maxDelay)
+    logger.info(`Reconnecting in ${delay}ms (attempt ${reconnectAttempt + 1}/${maxReconnectAttempts})`)
+    reconnectTimer = setTimeout(() => {
+      attemptReconnect().catch(() => {
+        reconnecting = false
+      })
+    }, delay)
+  }
+
+  async function attemptReconnect(): Promise<void> {
+    reconnecting = true
+    reconnectAttempt++
+
+    try {
+      await connectSocket()
+      reconnecting = false
+      reconnectAttempt = 0
+      logger.info('Reconnected successfully')
+    } catch {
+      reconnecting = false
+      if (reconnectAttempt < maxReconnectAttempts) {
+        scheduleReconnect()
+      } else {
+        logger.error(`Max reconnect attempts (${maxReconnectAttempts}) reached`)
+      }
+    }
+  }
+
+  function connectSocket(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const connectOptions = options.socketPath
+        ? { path: options.socketPath }
+        : { host: options.host ?? 'localhost', port: options.port ?? 9999 }
+
+      socket = connect(connectOptions, () => {
+        logger.info('RPC client connected')
+        resolve()
+      })
+
+      socket.on('data', handleData)
+      socket.on('error', (err) => {
+        if (!socket || socket.destroyed) {
+          reject(err)
+        }
+      })
+      socket.on('close', () => {
+        logger.info('RPC client disconnected')
+        for (const [, p] of pending) {
+          p.reject(new Error('Connection closed'))
+        }
+        pending.clear()
+        if (autoReconnect) {
+          scheduleReconnect()
+        }
+      })
     })
   }
 
@@ -178,30 +253,17 @@ export function createRpcClient(options: RPCClientOptions): RPCClientHandle {
     agent,
 
     async connect(): Promise<void> {
-      return new Promise((resolve, reject) => {
-        const connectOptions = options.socketPath
-          ? { path: options.socketPath }
-          : { host: options.host ?? 'localhost', port: options.port ?? 9999 }
-
-        socket = connect(connectOptions, () => {
-          logger.info('RPC client connected')
-          resolve()
-        })
-
-        socket.on('data', handleData)
-        socket.on('error', reject)
-        socket.on('close', () => {
-          logger.info('RPC client disconnected')
-          // Reject 所有 pending
-          for (const [, p] of pending) {
-            p.reject(new Error('Connection closed'))
-          }
-          pending.clear()
-        })
-      })
+      reconnectAttempt = 0
+      reconnecting = false
+      await connectSocket()
     },
 
     async disconnect(): Promise<void> {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
+      }
+      reconnecting = false
       if (socket) {
         socket.destroy()
         socket = null

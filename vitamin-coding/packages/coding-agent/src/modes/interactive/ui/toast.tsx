@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { Box, Text } from 'ink'
-import { useApp } from '../context/app-context.js'
-import { theme } from '../theme.js'
+import { useApp } from '../context/app-context'
+import { theme } from '../theme'
 
 /**
  * Toast notification — displays at top-right, auto-dismisses.

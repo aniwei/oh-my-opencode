@@ -1,5 +1,5 @@
-import type { UIState } from './types.js'
-import type { UIAction } from './actions.js'
+import type { UIState } from './types'
+import type { UIAction } from './actions'
 
 export const initialState: UIState = {
   dialog: { stack: [], size: 'medium' },

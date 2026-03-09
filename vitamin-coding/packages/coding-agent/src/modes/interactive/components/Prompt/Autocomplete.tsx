@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Box, Text, useInput } from 'ink'
 import fuzzysort from 'fuzzysort'
-import { useTheme } from '../../theme.js'
+import { useTheme } from '../../theme'
 
 interface AutocompleteItem {
   label: string

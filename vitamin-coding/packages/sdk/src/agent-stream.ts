@@ -1,6 +1,9 @@
 // AgentStream — 异步迭代流（for await...of + result()）
+import { createLogger } from '@vitamin/shared'
 import type { AgentSessionResult } from '@vitamin/coding-agent'
 import type { StreamEvent } from './types'
+
+const log = createLogger('sdk:agent-stream')
 
 // 创建 AgentStream
 export function createAgentStream(
@@ -27,7 +30,9 @@ export class AgentStream {
     })
 
     // 防止在 result() 被调用前产生 unhandled rejection
-    this.resultPromise.catch(() => {})
+    this.resultPromise.catch((error) => {
+      log.error({ err: error }, 'AgentStream result promise rejected before consumer attached')
+    })
 
     // 启动异步执行器
     this.run(executor)

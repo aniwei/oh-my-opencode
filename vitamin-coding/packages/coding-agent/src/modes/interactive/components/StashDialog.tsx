@@ -1,6 +1,6 @@
 import { Box, Text, useInput } from 'ink'
-import { useApp } from '../context/app-context.js'
-import { theme } from '../theme.js'
+import { useApp } from '../context/app-context'
+import { theme } from '../theme'
 
 interface StashDialogProps {
   items: string[]

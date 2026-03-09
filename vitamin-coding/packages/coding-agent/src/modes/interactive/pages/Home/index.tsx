@@ -1,8 +1,8 @@
 import { Box, Text } from 'ink'
-// import { Logo } from '../components/Logo.js'
-import { Prompt } from '../../components/Prompt/index.js'
-import { Tips } from '../../components/Tips.js'
-import { useTheme } from '../../theme.js'
+// import { Logo } from '../components/Logo'
+import { Prompt } from '../../components/Prompt/index'
+import { Tips } from '../../components/Tips'
+import { useTheme } from '../../theme'
 
 export function Home() {
   const theme = useTheme()

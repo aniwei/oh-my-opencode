@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink'
-import { theme } from '../../../theme.js'
-import { Spinner } from '../../../components/Spinner.js'
+import { theme } from '../../../theme'
+import { Spinner } from '../../../components/Spinner'
 
 interface WebFetchToolProps {
   url: string

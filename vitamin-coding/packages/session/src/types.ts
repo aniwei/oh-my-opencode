@@ -8,6 +8,8 @@ export interface SessionEntry {
   type: 'message' | 'system' | 'compaction' | 'branch_point'
   content: Message | SystemEvent | CompactionRecord
   timestamp: number
+  label?: string
+  bookmarked?: boolean
   metadata?: Record<string, unknown>
 }
 
@@ -46,6 +48,7 @@ export interface SessionMetadata {
   model?: string
   agent?: string
   activeEntryId?: string
+  bookmarkCount: number
   tokenUsage: TokenUsage
 }
 

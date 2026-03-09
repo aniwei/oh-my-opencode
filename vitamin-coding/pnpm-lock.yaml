@@ -162,6 +162,9 @@ importers:
       '@vitamin/agent':
         specifier: workspace:*
         version: link:../agent
+      '@vitamin/ai':
+        specifier: workspace:*
+        version: link:../ai
       '@vitamin/hooks':
         specifier: workspace:*
         version: link:../hooks

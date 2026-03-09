@@ -1,5 +1,5 @@
 import { Text } from 'ink'
-import { theme } from '../theme.js'
+import { theme } from '../theme'
 
 interface LinkProps {
   url: string

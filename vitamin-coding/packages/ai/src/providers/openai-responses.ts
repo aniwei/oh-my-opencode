@@ -1,8 +1,10 @@
 // OpenAI Responses API 适配器
 // 对应 OpenAI 的新 Responses API（替代 Chat Completions）
+// 支持 SSE（默认）和 WebSocket（如 Codex）两种传输
 import { createLogger } from '@vitamin/shared'
 
 import { httpStreamRequest } from '../utils/http-client'
+import { wsStreamRequest } from '../utils/ws-client'
 import { toToolJsonSchema } from '../utils/tool-schema'
 
 import type {
@@ -170,21 +172,20 @@ export function createOpenAIResponsesProvider(): ProviderAdapter {
       const baseUrl = model.baseUrl || 'https://api.openai.com'
       const url = `${baseUrl}/v1/responses`
       const body = buildRequestBody(model, context)
+      const transport = model.transport ?? 'sse'
 
-      log.debug({ model: model.id }, 'OpenAI Responses 流式请求')
+      log.debug({ model: model.id, transport }, 'OpenAI Responses 流式请求')
 
       const state = createStreamState(model.id)
       let started = false
 
-      for await (const sseEvent of httpStreamRequest({
-        url,
-        body,
-        headers: {
-          authorization: `Bearer ${apiKey}`,
-        },
-        signal,
-        timeout: options.timeout ?? 300000,
-      })) {
+      // 根据传输方式选择 SSE 或 WebSocket
+      const eventSource =
+        transport === 'websocket'
+          ? wsStreamRequest({ url, body, headers: { authorization: `Bearer ${apiKey}` }, signal, timeout: options.timeout ?? 300000 })
+          : httpStreamRequest({ url, body, headers: { authorization: `Bearer ${apiKey}` }, signal, timeout: options.timeout ?? 300000 })
+
+      for await (const sseEvent of eventSource) {
         if (sseEvent.data === '[DONE]') break
 
         try {

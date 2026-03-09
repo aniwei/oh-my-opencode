@@ -1,4 +1,4 @@
-import type { DialogEntry, ToastOptions, UIState } from './types.js'
+import type { DialogEntry, ToastOptions, UIState } from './types'
 
 export type UIAction =
   // ─── Dialog ───

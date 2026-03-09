@@ -1,7 +1,7 @@
 import { Box, Text } from 'ink'
-import { UserMessage, type UserMessageData } from './UserMessage.js'
-import { AssistantMessage, type AssistantMessageData } from './AssistantMessage.js'
-import { theme } from '../../theme.js'
+import { UserMessage, type UserMessageData } from './UserMessage'
+import { AssistantMessage, type AssistantMessageData } from './AssistantMessage'
+import { theme } from '../../theme'
 
 export type MessageData =
   | { role: 'user'; data: UserMessageData }

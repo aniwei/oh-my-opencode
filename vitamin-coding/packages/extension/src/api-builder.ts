@@ -14,6 +14,7 @@ import type {
   ExtensionEventName,
   ExtensionUIContext,
   McpRegistration,
+  ProviderConfig,
   SlashCommand,
 } from './types'
 
@@ -26,6 +27,7 @@ export interface ExtensionRegistry {
   hooks: HookRegistration[]
   mcps: Map<string, McpRegistration>
   shortcuts: Map<string, () => void | Promise<void>>
+  providers: Map<string, ProviderConfig>
 }
 
 // API 构建器配置
@@ -147,6 +149,22 @@ export function buildExtensionApi(
       return dispose
     },
 
+    registerProvider(name: string, providerConfig: ProviderConfig): () => void {
+      const providerName = `ext:${extName}:${name}`
+      registry.providers.set(providerName, providerConfig)
+      const dispose = () => {
+        registry.providers.delete(providerName)
+      }
+      disposers.push(dispose)
+      logger.info(`Extension ${extName} 注册 Provider: ${name}`)
+      return dispose
+    },
+
+    unregisterProvider(name: string): void {
+      const providerName = `ext:${extName}:${name}`
+      registry.providers.delete(providerName)
+    },
+
     // 上下文 — 允许外部注入，提供默认的 no-op 回退
     ui: config.ui ?? {
       select: async () => undefined,
@@ -154,6 +172,12 @@ export function buildExtensionApi(
       input: async () => undefined,
       notify: () => {},
       setStatus: () => {},
+      setWidget: () => () => {},
+      removeWidget: () => {},
+      pasteToEditor: () => {},
+      setEditorText: () => {},
+      getEditorText: () => '',
+      registerMessageRenderer: () => () => {},
     },
 
     config: config.config ?? {
@@ -195,5 +219,6 @@ export function createExtensionRegistry(): ExtensionRegistry {
     hooks: [],
     mcps: new Map(),
     shortcuts: new Map(),
+    providers: new Map(),
   }
 }

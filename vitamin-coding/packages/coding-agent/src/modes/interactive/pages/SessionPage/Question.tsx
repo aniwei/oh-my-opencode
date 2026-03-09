@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Box, Text, useInput } from 'ink'
-import { theme } from '../../theme.js'
+import { theme } from '../../theme'
 
 interface QuestionOption {
   label: string

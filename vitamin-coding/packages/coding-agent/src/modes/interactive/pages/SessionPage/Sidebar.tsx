@@ -1,7 +1,7 @@
 import { Box, Text, useInput } from 'ink'
 import { useState } from 'react'
-import { TodoItem } from '../../components/TodoItem.js'
-import { theme } from '../../theme.js'
+import { TodoItem } from '../../components/TodoItem'
+import { theme } from '../../theme'
 
 interface McpServer {
   name: string

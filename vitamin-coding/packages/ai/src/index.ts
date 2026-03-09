@@ -40,6 +40,10 @@ export {
 // EventStream
 export { EventStream, createEventStream } from './utils/event-stream'
 
+// HTTP/WS 传输（可被 Provider 直接使用）
+export { wsStreamRequest } from './utils/ws-client'
+export type { WsStreamOptions, WsConnectOptions } from './utils/ws-client'
+
 // 模型注册表
 export { ModelRegistry, createModelRegistry } from './model-registry'
 export { BUILTIN_MODELS } from './models'

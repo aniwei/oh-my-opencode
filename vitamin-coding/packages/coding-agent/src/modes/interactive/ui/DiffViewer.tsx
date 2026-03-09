@@ -1,6 +1,6 @@
 import { Box, Text } from 'ink'
-import { theme } from '../theme.js'
-import { createDiffLines, type DiffLine } from '../shared/diff-utils.js'
+import { theme } from '../theme'
+import { createDiffLines, type DiffLine } from '../shared/diff-utils'
 
 interface DiffViewerProps {
   oldText: string

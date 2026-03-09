@@ -1,8 +1,8 @@
 import { Box, Text } from 'ink'
-import { theme } from '../../theme.js'
-import { Spinner } from '../../components/Spinner.js'
-import type { ToolPartData } from './parts/ToolPart.js'
-import { ToolPart } from './parts/ToolPart.js'
+import { theme } from '../../theme'
+import { Spinner } from '../../components/Spinner'
+import type { ToolPartData } from './parts/ToolPart'
+import { ToolPart } from './parts/ToolPart'
 
 export interface AssistantMessagePart {
   type: 'text' | 'reasoning' | 'tool'

@@ -62,6 +62,7 @@ export class SessionManager {
       updatedAt: now,
       messageCount: 0,
       tags: [],
+      bookmarkCount: 0,
       tokenUsage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0, totalCost: 0 },
     }
 
@@ -461,6 +462,7 @@ export class SessionManager {
       messageCount: messageEntries.length,
       tags: [],
       activeEntryId: tree.getActiveEntryId() ?? undefined,
+      bookmarkCount: entries.filter((e) => e.bookmarked).length,
       tokenUsage: this.tokenUsageCache.get(sessionId) ?? {
         inputTokens: 0,
         outputTokens: 0,
@@ -469,6 +471,35 @@ export class SessionManager {
         totalCost: 0,
       },
     }
+  }
+
+  // 设置条目标签
+  async setLabel(sessionId: string, entryId: string, label: string): Promise<void> {
+    const tree = await this.getTree(sessionId)
+    const entry = tree.getEntries().find((e) => e.id === entryId)
+    if (!entry) {
+      throw new SessionError(`条目 "${entryId}" 不存在`, { code: 'ENTRY_NOT_FOUND' })
+    }
+    entry.label = label
+    log.info(`设置标签: ${sessionId}/${entryId} → ${label}`)
+  }
+
+  // 切换条目书签状态
+  async toggleBookmark(sessionId: string, entryId: string): Promise<boolean> {
+    const tree = await this.getTree(sessionId)
+    const entry = tree.getEntries().find((e) => e.id === entryId)
+    if (!entry) {
+      throw new SessionError(`条目 "${entryId}" 不存在`, { code: 'ENTRY_NOT_FOUND' })
+    }
+    entry.bookmarked = !entry.bookmarked
+    log.info(`书签切换: ${sessionId}/${entryId} → ${String(entry.bookmarked)}`)
+    return entry.bookmarked
+  }
+
+  // 获取所有书签条目
+  async getBookmarks(sessionId: string): Promise<SessionEntry[]> {
+    const tree = await this.getTree(sessionId)
+    return tree.getEntries().filter((e) => e.bookmarked)
   }
 }
 
